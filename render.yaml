@@ -1,0 +1,18 @@
+# Blueprint de Render: New + > Blueprint, y elegir este repositorio.
+services:
+  - type: web
+    name: smart-classroom-panel
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4
+    healthCheckPath: /salud
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: PANEL_USUARIO
+        value: docente
+      - key: PANEL_CLAVE
+        generateValue: true        # Render genera la contraseña; se ve en Environment
+      - key: API_KEY
+        generateValue: true        # clave que usa el aula para enviar indicadores

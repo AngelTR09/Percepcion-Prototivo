@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Classroom Vision · Panel</title>
+<style>
+  :root { --fondo:#f6f7f9; --tarjeta:#fff; --texto:#1c2430; --suave:#5d6877; --linea:#e2e6ec;
+          --acento:#2a6fdb; --ok:#1f8a4c; --alerta:#b7791f; --mal:#c0392b; --barra:#dbe6fb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fondo:#12161c; --tarjeta:#1a2028; --texto:#e8ecf1; --suave:#9aa5b4; --linea:#2b3440;
+            --acento:#6ea3ff; --ok:#4cc27f; --alerta:#e0a94a; --mal:#ef7a6c; --barra:#2a3a5a; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--fondo); color:var(--texto); font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:980px; margin:0 auto; padding:16px; }
+  h1 { font-size:1.3rem; margin:8px 0 2px; } h2 { font-size:1rem; margin:0 0 10px; color:var(--suave); font-weight:600; }
+  .sub { color:var(--suave); margin:0 0 12px; font-size:.9rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:14px 0; }
+  .card { background:var(--tarjeta); border:1px solid var(--linea); border-radius:10px; padding:14px; }
+  .card .n { font-size:1.9rem; font-weight:700; line-height:1.1; } .card .t { color:var(--suave); font-size:.85rem; margin-top:4px; }
+  section.card { margin:12px 0; overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  th, td { text-align:right; padding:6px 8px; border-bottom:1px solid var(--linea); white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; }
+  .barra { display:inline-block; height:10px; background:var(--barra); border-radius:3px; vertical-align:middle; margin-left:8px; }
+  .barra i { display:block; height:100%; background:var(--acento); border-radius:3px; }
+  .etq { display:inline-block; padding:2px 10px; border-radius:99px; font-size:.85rem; border:1px solid var(--linea); }
+  svg { width:100%; height:auto; display:block; } img { max-width:100%; height:auto; border-radius:6px; }
+  .aviso { font-size:.85rem; color:var(--suave); margin:16px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Smart Classroom Vision</h1>
+  <p class="sub">Panel de avance · Curso Percepción Computacional · Equipo Imagen</p>
+
+  <div class="grid" id="resumen"></div>
+
+  <section class="card"><h2>Métricas del modelo de comportamientos (conjunto de validación)</h2><div id="clases"></div>
+    <p class="sub" id="nota-modelo"></p></section>
+
+  <section class="card"><h2>mAP@0.5 durante el entrenamiento</h2><div id="curva"></div></section>
+
+  <section class="card"><h2>Matriz de confusión normalizada</h2>
+    <img src="static/matriz_confusion.png" alt="Matriz de confusión normalizada del modelo"></section>
+
+  <section class="card"><h2>Indicadores por minuto <span class="etq" id="origen"></span></h2>
+    <div id="grafico"></div><div id="tabla"></div></section>
+
+  <section class="card"><h2>Calidad y balance del dataset (RNF09)</h2><div id="dataset"></div></section>
+
+  <p class="aviso">Solo se muestran números agregados: sin imágenes, sin video y sin identificar a ninguna persona. Los indicadores son
+     <strong>orientativos</strong> y no deben usarse para evaluar o sancionar a estudiantes.</p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const NOMBRES = {"person":"Personas","laptop":"Laptops","cell phone":"Celulares","book":"Libros","hand-raising":"Levantar la mano",
+                 "read":"Leer","write":"Escribir","BowHead":"Cabeza agachada","TurnHead":"Cabeza girada"};
+const nombre = k => NOMBRES[k] || k;
+const f3 = v => v.toFixed(3);
+
+function linea(el, pts, etiquetaX, max, meta) {
+  const W = 640, H = 210, m = {l:40, r:10, t:12, b:26};
+  const x = i => m.l + (pts.length === 1 ? (W-m.l-m.r)/2 : i*(W-m.l-m.r)/(pts.length-1));
+  const y = v => H - m.b - v*(H-m.t-m.b)/max;
+  const P = pts.map((v,i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img">
+    <line x1="${m.l}" y1="${H-m.b}" x2="${W-m.r}" y2="${H-m.b}" stroke="var(--linea)"/><line x1="${m.l}" y1="${m.t}" x2="${m.l}" y2="${H-m.b}" stroke="var(--linea)"/>
+    <text x="${m.l-6}" y="${m.t+4}" text-anchor="end" font-size="11" fill="var(--suave)">${max}</text><text x="${m.l-6}" y="${H-m.b}" text-anchor="end" font-size="11" fill="var(--suave)">0</text>
+    ${meta ? `<line x1="${m.l}" x2="${W-m.r}" y1="${y(meta)}" y2="${y(meta)}" stroke="var(--mal)" stroke-dasharray="5 4"/><text x="${W-m.r}" y="${y(meta)-4}" text-anchor="end" font-size="11" fill="var(--mal)">meta RNF06 = ${meta}</text>` : ""}
+    <text x="${W-m.r}" y="${H-7}" text-anchor="end" font-size="11" fill="var(--suave)">${etiquetaX}</text>
+    <polyline points="${P}" fill="none" stroke="var(--acento)" stroke-width="2.5"/>
+    ${pts.length < 60 ? pts.map((v,i) => `<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--acento)"/>`).join("") : ""}</svg>`;
+}
+
+async function metricas() {
+  const d = await (await fetch("api/metricas")).json(), g = d.global, ok = g.mAP50 >= d.meta_rnf06;
+  $("resumen").innerHTML = [
+    [f3(g.mAP50), "mAP@0.5 global"], [f3(g.precision), "Precisión"], [f3(g.recall), "Recall"],
+    [`<span style="color:var(${ok ? "--ok" : "--alerta"})">${ok ? "Cumple" : "En curso"}</span>`, `RNF06: meta mAP@0.5 ≥ ${d.meta_rnf06}`],
+  ].map(([n,t]) => `<div class="card"><div class="n">${n}</div><div class="t">${t}</div></div>`).join("");
+  $("clases").innerHTML = `<table><thead><tr><th>Comportamiento</th><th>Precisión</th><th>Recall</th><th>mAP@0.5</th><th>mAP@0.5-0.95</th></tr></thead><tbody>` +
+    d.clases.map(c => `<tr><td>${esc(c.etiqueta)}</td><td>${f3(c.precision)}</td><td>${f3(c.recall)}</td>
+      <td>${f3(c.mAP50)}<span class="barra" style="width:${Math.round(c.mAP50*100)}px"><i style="width:100%"></i></span></td><td>${f3(c.mAP50_95)}</td></tr>`).join("") +
+    `<tr><td><strong>Todas</strong></td><td>${f3(g.precision)}</td><td>${f3(g.recall)}</td><td><strong>${f3(g.mAP50)}</strong></td><td>${f3(g.mAP50_95)}</td></tr></tbody></table>`;
+  $("nota-modelo").textContent = `${d.modelo.arquitectura} a ${d.modelo.imgsz} px · ${d.modelo.epocas} épocas · mejor época: ${d.modelo.mejor_epoca}`;
+  linea($("curva"), d.curva.map(c => c.mAP50), "época " + d.curva.length, 0.8, d.meta_rnf06);
+  const ds = d.dataset, tot = k => Object.values(ds.splits[k].anotaciones).reduce((a,b) => a+b, 0);
+  $("dataset").innerHTML = `<p class="sub">${esc(ds.fuente)} · ${ds.unicas_evaluadas} imágenes únicas evaluadas: <strong>${ds.aptas} aptas</strong>, ${ds.descartadas} descartadas por el control de calidad (RF03).
+    Entrenamiento: ${ds.splits.train.imagenes} imágenes · Validación: ${ds.splits.val.imagenes} imágenes.</p>
+    <table><thead><tr><th>Clase</th><th>Anotaciones (entrenamiento)</th><th>% del total</th><th>¿≥ 10 %? (RNF09)</th></tr></thead><tbody>` +
+    Object.entries(ds.splits.train.anotaciones).map(([k,v]) => { const p = 100*v/tot("train");
+      return `<tr><td>${esc(nombre(k))}</td><td>${v}</td><td>${p.toFixed(1)} %</td><td style="color:var(${p>=10?"--ok":"--mal"})">${p>=10?"sí":"no"}</td></tr>`; }).join("") + `</tbody></table>`;
+}
+
+async function indicadores() {
+  const d = await (await fetch("api/indicadores")).json(), F = d.filas;
+  $("origen").textContent = d.origen === "aula" ? "datos del aula en vivo" : "sesión de demostración";
+  if (!F.length) { $("grafico").innerHTML = '<p class="sub">Aún no hay indicadores.</p>'; $("tabla").innerHTML = ""; return; }
+  linea($("grafico"), F.map(r => r.person || 0), "minuto " + F[F.length-1].minuto, Math.max(1, ...F.map(r => r.person || 0)));
+  const cols = []; for (const r of F) for (const k of Object.keys(r)) if (!["minuto","iluminacion","aula","sesion"].includes(k) && !cols.includes(k)) cols.push(k);
+  $("tabla").innerHTML = `<table><thead><tr><th>Minuto</th>${cols.map(c => `<th>${esc(nombre(c))}</th>`).join("")}<th>Iluminación</th></tr></thead><tbody>` +
+    F.slice(-12).reverse().map(r => `<tr><td>${Math.round(r.minuto)}</td>${cols.map(c => `<td>${r[c] ?? 0}</td>`).join("")}<td>${esc(r.iluminacion ?? "")}</td></tr>`).join("") + `</tbody></table>`;
+}
+metricas(); indicadores(); setInterval(indicadores, 5000);
+</script>
+</body>
+</html>
