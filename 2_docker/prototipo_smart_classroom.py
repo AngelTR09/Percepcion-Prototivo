@@ -43,6 +43,11 @@ ETIQUETAS_VISTA = {"person": "Persona", "laptop": "Laptop", "cell phone": "Celul
                    "read": "Leer", "write": "Escribir", "BowHead": "Cabeza agachada", "TurnHead": "Cabeza girada"}
 vista = {"jpg": None, "pedida": 0.0}
 
+# Imagen en la página de Render (opcional). Se envía SOLO la imagen ya difuminada, y solo mientras alguien
+# está mirando esa sección de la página; el servidor la guarda únicamente en memoria (último cuadro).
+NUBE_IMAGEN = os.getenv("NUBE_IMAGEN", "0") == "1"
+ultimo_cuadro = {"v": None}
+
 # Estado compartido con el panel web (solo indicadores agregados; nunca imágenes)
 estado = {"vista": VISTA_PREVIA, "camara": "conectando", "actual": {}, "iluminacion": None, "apta": None, "fps": 0.0, "registros": []}
 bloqueo = threading.Lock()
@@ -105,8 +110,8 @@ def analizar(frame):
     return conteo, cajas
 
 
-def publicar_vista(frame, cajas):
-    """RF07: los rostros se difuminan ANTES de dibujar o publicar la imagen."""
+def generar_jpg(frame, cajas):
+    """RF07: los rostros se difuminan ANTES de dibujar las detecciones y de codificar la imagen."""
     img = anonimizar(frame.copy())
     for x1, y1, x2, y2, nombre, conf in cajas:
         color = tuple(int(v) for v in np.random.default_rng(abs(hash(nombre)) % 2**32).integers(60, 255, 3))
@@ -115,9 +120,34 @@ def publicar_vista(frame, cajas):
             texto = f"{ETIQUETAS_VISTA.get(nombre, nombre)} {conf:.0%}"
             cv2.putText(img, texto, (x1, max(y1 - 4, 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1, cv2.LINE_AA)
     ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 70])
-    if ok:
+    return buf.tobytes() if ok else None
+
+
+def publicar_vista(frame, cajas):
+    """Vista previa del panel local."""
+    jpg = generar_jpg(frame, cajas)
+    if jpg:
         with bloqueo:
-            vista["jpg"] = buf.tobytes()
+            vista["jpg"] = jpg
+
+
+def bucle_nube_imagen(detener):
+    """Envía a Render la imagen difuminada solo mientras alguien la está mirando; si nadie mira, solo pregunta cada 3 s."""
+    url, mirando = NUBE_URL.rstrip("/"), False
+
+    def pedir(ruta, datos=None):
+        req = urllib.request.Request(url + ruta, datos, {"X-API-Key": NUBE_CLAVE, **({"Content-Type": "image/jpeg"} if datos else {})})
+        return json.loads(urllib.request.urlopen(req, timeout=10).read())["mirando"]
+
+    while not detener.is_set():
+        time.sleep(0.8 if mirando else 3)
+        try:
+            cuadro = ultimo_cuadro["v"]
+            jpg = generar_jpg(*cuadro) if mirando and cuadro else None
+            mirando = pedir("/api/vista", jpg) if jpg else pedir("/api/vista/pregunta")
+        except Exception as e:
+            mirando = False
+            print("Imagen en la nube no disponible, se reintentará:", e, flush=True)
 
 
 def guardar_registros(registros):
@@ -175,6 +205,8 @@ def bucle_captura(detener):
             if NUBE_URL:
                 enviar_a_nube(fila)
             acumulado, n_frames, inicio = {}, 0, time.time()
+        if NUBE_IMAGEN:
+            ultimo_cuadro["v"] = (frame, cajas)      # el hilo de envío lo toma solo si alguien está mirando
         if VISTA_PREVIA and time.time() - vista["pedida"] < 10 and time.time() - ultima_vista >= 0.4:
             ultima_vista = time.time()               # solo se genera si alguien la está mirando
             publicar_vista(frame, cajas)
@@ -205,6 +237,9 @@ def main():
     signal.signal(signal.SIGTERM, lambda *_: detener.set())     # docker stop
     if PANEL:
         iniciar_panel()
+    if NUBE_IMAGEN and NUBE_URL:
+        threading.Thread(target=bucle_nube_imagen, args=(detener,), daemon=True).start()
+        print("AVISO: la imagen (con rostros difuminados) se envía a", NUBE_URL, "solo mientras alguien la mira en esa página.", flush=True)
     try:
         bucle_captura(detener)
     except KeyboardInterrupt:

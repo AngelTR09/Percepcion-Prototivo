@@ -35,6 +35,19 @@ Lo que se ve en el panel: personas, laptops, celulares, libros y los 5 comportam
 - El difuminado puede fallar con rostros pequeños, de perfil o parcialmente tapados (los del fondo del aula, sobre todo). No la muestres fuera del aula.
 - En la demostración, la etiqueta «cámara: reconectando» aparece un instante cada vez que el video de 30 s vuelve a empezar.
 
+## Cámara real en la página de Render (opcional)
+
+Con `NUBE_IMAGEN=1` en el `.env` de `2_docker/`, la página de Render muestra la cámara del aula (sección **«Cámara del aula en vivo»**, botón *Ver cámara en vivo*, o `.../#camara`), y a la vez el sistema sigue generando las estadísticas.
+```bash
+cd 2_docker          # .env con NUBE_URL, NUBE_CLAVE y NUBE_IMAGEN=1
+docker compose up -d --build     # usa la cámara USB (cierra antes el navegador u otro programa que la use)
+```
+Cómo se limita el riesgo para la privacidad:
+- Solo se envía la imagen **ya difuminada**, y **únicamente mientras alguien tiene abierta esa sección** en Render. Si nadie mira, el aula solo pregunta cada 3 s y no envía nada.
+- Render la guarda **solo en memoria** (un único cuadro), nunca en disco, y la descarta en ~8 s si deja de llegar.
+- Requiere contraseña, y el aula se identifica con la API_KEY. Solo acepta JPEG de hasta 400 KB.
+- **Esto se aparta del RNF02** («no se almacenará video ni imágenes con rostros» y procesamiento local): hay que declararlo en el informe, avisar en el aula y contar con el consentimiento de quienes aparecen. El difuminado falla con rostros pequeños, de perfil o tapados.
+
 ## 2. Publicar el panel en Render
 
 1. Este repositorio ya tiene la estructura que Render necesita en la raíz.

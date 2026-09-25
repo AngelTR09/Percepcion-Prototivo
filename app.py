@@ -8,6 +8,7 @@ import json
 import os
 import secrets
 import threading
+import time
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, request
@@ -22,6 +23,9 @@ if not os.getenv("PANEL_CLAVE") or not os.getenv("API_KEY"):
 
 app = Flask(__name__, static_folder=str(AQUI / "static"))
 candado = threading.Lock()
+# Último cuadro del aula (ya difuminado). Solo en memoria: no se escribe en disco y se descarta si deja de llegar.
+VISTA = {"jpg": None, "t": 0.0, "pedida": 0.0}
+MAX_JPG = 400_000
 
 
 def leer_vivos():
@@ -47,7 +51,8 @@ def es(a, b):
 def autenticar():
     if request.path == "/salud":                                                # chequeo de salud de Render: sin datos
         return None
-    if request.path == "/api/indicadores" and request.method == "POST":        # el aula se identifica con clave de API
+    if (request.method, request.path) in {("POST", "/api/indicadores"), ("POST", "/api/vista"), ("GET", "/api/vista/pregunta")}:
+        # el aula se identifica con clave de API
         if not es(request.headers.get("X-API-Key"), API_KEY):
             return Response("Clave de API incorrecta", 401)
         return None
@@ -73,6 +78,37 @@ def recibir():
         filas = leer_vivos() + [limpia]
         ARCHIVO_VIVO.write_text(json.dumps(filas[-2000:]))
     return jsonify(ok=True, total=len(filas))
+
+
+def mirando():
+    return time.time() - VISTA["pedida"] < 15                                  # alguien tiene abierta la cámara en la página
+
+
+@app.get("/api/vista/pregunta")
+def vista_pregunta():
+    return jsonify(mirando=mirando())
+
+
+@app.post("/api/vista")
+def vista_recibir():
+    jpg = request.get_data(cache=False)
+    if request.mimetype != "image/jpeg" or len(jpg) > MAX_JPG or not jpg.startswith(b"\xff\xd8"):
+        return Response("Solo se acepta una imagen JPEG de hasta 400 KB", 400)
+    with candado:
+        VISTA["jpg"], VISTA["t"] = jpg, time.time()
+    return jsonify(mirando=mirando())
+
+
+@app.get("/vista.jpg")
+def vista_ver():
+    with candado:
+        VISTA["pedida"] = time.time()                                          # avisa al aula de que alguien está mirando
+        jpg, antigua = VISTA["jpg"], time.time() - VISTA["t"] > 8
+        if jpg is None or antigua:
+            VISTA["jpg"] = None if antigua else VISTA["jpg"]                   # una imagen vieja se descarta
+    if jpg is None or antigua:
+        return Response("Sin señal del aula", 404)
+    return Response(jpg, mimetype="image/jpeg")
 
 
 @app.get("/api/indicadores")
