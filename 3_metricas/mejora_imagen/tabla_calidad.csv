@@ -1,0 +1,7 @@
+Imagen,Brillo,Contraste,Nitidez (var. Laplaciano),Ruido estimado (sigma),Resultado
+Original,125.4,51.2,1017.6,1.35,Apta
+Ruido gaussiano,125.2,52.6,6357.8,16.49,No apta
+Oscura,35.6,25.5,306.2,0.8,No apta
+Movida,125.4,46.1,74.3,0.33,No apta
+Movida + realce,125.5,49.3,232.4,0.55,Apta
+Oscura corregida,123.2,56.1,2476.2,2.2,Apta

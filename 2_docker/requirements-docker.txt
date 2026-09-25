@@ -1,0 +1,8 @@
+# Dependencias del contenedor (sin jupyter ni matplotlib). torch se instala aparte, versión CPU.
+# opencv < 5: OpenCV 5 eliminó cv2.dnn.readNetFromCaffe, que usa el detector de rostros
+opencv-python-headless<5
+numpy
+pandas
+ultralytics
+flask
+waitress
