@@ -3,7 +3,6 @@ Smart Classroom Vision - Prototipo base (Equipo Imagen)
 Detecta personas y objetos académicos, clasifica comportamientos observables,
 anonimiza rostros y registra indicadores agregados por minuto (sin guardar video).
 """
-import json
 import os
 import secrets
 import signal
@@ -29,24 +28,12 @@ PANEL_PUERTO = int(os.getenv("PANEL_PUERTO", "8000"))
 PANEL_USUARIO = os.getenv("PANEL_USUARIO", "docente")
 PANEL_CLAVE = os.getenv("PANEL_CLAVE") or secrets.token_urlsafe(6)   # RNF02: si no se define, se genera una
 
-# Envío opcional de indicadores agregados a un panel en la nube (p. ej. Render). Desactivado si NUBE_URL está vacía.
-NUBE_URL = os.getenv("NUBE_URL", "")
-NUBE_CLAVE = os.getenv("NUBE_CLAVE", "")
-AULA_ID = os.getenv("AULA_ID", "aula-1")
-SESION = time.strftime("%Y%m%d_%H%M%S")
-pendientes, candado_nube = [], threading.Lock()
-
 # Vista previa opcional en el panel local: solo la imagen YA anonimizada, con las detecciones dibujadas.
-# Se genera únicamente mientras alguien la mira, no se guarda en disco y nunca se envía a la nube.
+# Se genera únicamente mientras alguien la mira y no se guarda en disco.
 VISTA_PREVIA = os.getenv("VISTA_PREVIA", "0") == "1"
 ETIQUETAS_VISTA = {"person": "Persona", "laptop": "Laptop", "cell phone": "Celular", "book": "Libro", "hand-raising": "Levanta la mano",
                    "read": "Leer", "write": "Escribir", "BowHead": "Cabeza agachada", "TurnHead": "Cabeza girada"}
 vista = {"jpg": None, "pedida": 0.0}
-
-# Imagen en la página de Render (opcional). Se envía SOLO la imagen ya difuminada, y solo mientras alguien
-# está mirando esa sección de la página; el servidor la guarda únicamente en memoria (último cuadro).
-NUBE_IMAGEN = os.getenv("NUBE_IMAGEN", "0") == "1"
-ultimo_cuadro = {"v": None}
 
 # Estado compartido con el panel web (solo indicadores agregados; nunca imágenes)
 estado = {"vista": VISTA_PREVIA, "camara": "conectando", "actual": {}, "iluminacion": None, "apta": None, "fps": 0.0, "registros": []}
@@ -131,47 +118,9 @@ def publicar_vista(frame, cajas):
             vista["jpg"] = jpg
 
 
-def bucle_nube_imagen(detener):
-    """Envía a Render la imagen difuminada solo mientras alguien la está mirando; si nadie mira, solo pregunta cada 3 s."""
-    url, mirando = NUBE_URL.rstrip("/"), False
-
-    def pedir(ruta, datos=None):
-        req = urllib.request.Request(url + ruta, datos, {"X-API-Key": NUBE_CLAVE, **({"Content-Type": "image/jpeg"} if datos else {})})
-        return json.loads(urllib.request.urlopen(req, timeout=10).read())["mirando"]
-
-    while not detener.is_set():
-        time.sleep(0.8 if mirando else 3)
-        try:
-            cuadro = ultimo_cuadro["v"]
-            jpg = generar_jpg(*cuadro) if mirando and cuadro else None
-            mirando = pedir("/api/vista", jpg) if jpg else pedir("/api/vista/pregunta")
-        except Exception as e:
-            mirando = False
-            print("Imagen en la nube no disponible, se reintentará:", e, flush=True)
-
-
 def guardar_registros(registros):
     """RF09: exporta el reporte CSV de la sesión."""
     pd.DataFrame(registros).to_csv(SALIDA_CSV, index=False)
-
-
-def enviar_a_nube(fila):
-    """RNF02: envía solo el indicador agregado (números), nunca imágenes. Si falla, reintenta con el siguiente minuto."""
-    pendientes.append({**fila, "aula": AULA_ID, "sesion": SESION})
-    del pendientes[:-500]
-
-    def _enviar():
-        with candado_nube:
-            while pendientes:
-                req = urllib.request.Request(NUBE_URL.rstrip("/") + "/api/indicadores", json.dumps(pendientes[0]).encode(),
-                                             {"Content-Type": "application/json", "X-API-Key": NUBE_CLAVE})
-                try:
-                    urllib.request.urlopen(req, timeout=10).read()
-                    pendientes.pop(0)
-                except Exception as e:
-                    print("Panel en la nube no disponible, se reintentará:", e, flush=True)
-                    return
-    threading.Thread(target=_enviar, daemon=True).start()
 
 
 def bucle_captura(detener):
@@ -202,11 +151,7 @@ def bucle_captura(detener):
                 estado["registros"].append(fila)
                 registros = list(estado["registros"])
             guardar_registros(registros)
-            if NUBE_URL:
-                enviar_a_nube(fila)
             acumulado, n_frames, inicio = {}, 0, time.time()
-        if NUBE_IMAGEN:
-            ultimo_cuadro["v"] = (frame, cajas)      # el hilo de envío lo toma solo si alguien está mirando
         if VISTA_PREVIA and time.time() - vista["pedida"] < 10 and time.time() - ultima_vista >= 0.4:
             ultima_vista = time.time()               # solo se genera si alguien la está mirando
             publicar_vista(frame, cajas)
@@ -237,9 +182,6 @@ def main():
     signal.signal(signal.SIGTERM, lambda *_: detener.set())     # docker stop
     if PANEL:
         iniciar_panel()
-    if NUBE_IMAGEN and NUBE_URL:
-        threading.Thread(target=bucle_nube_imagen, args=(detener,), daemon=True).start()
-        print("AVISO: la imagen (con rostros difuminados) se envía a", NUBE_URL, "solo mientras alguien la mira en esa página.", flush=True)
     try:
         bucle_captura(detener)
     except KeyboardInterrupt:

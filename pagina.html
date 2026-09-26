@@ -26,8 +26,6 @@
   .barra i { display:block; height:100%; background:var(--acento); border-radius:3px; }
   .etq { display:inline-block; padding:2px 10px; border-radius:99px; font-size:.85rem; border:1px solid var(--linea); }
   svg { width:100%; height:auto; display:block; } img { max-width:100%; height:auto; border-radius:6px; }
-  #cam-img { width:100%; max-width:640px; border-radius:8px; border:1px solid var(--linea); background:#000; }
-  button { font:inherit; padding:6px 14px; border-radius:8px; border:1px solid var(--linea); background:var(--tarjeta); color:var(--texto); cursor:pointer; }
   .aviso { font-size:.85rem; color:var(--suave); margin:16px 0; }
 </style>
 </head>
@@ -45,12 +43,6 @@
 
   <section class="card"><h2>Matriz de confusión normalizada</h2>
     <img src="static/matriz_confusion.png" alt="Matriz de confusión normalizada del modelo"></section>
-
-  <section class="card"><h2>Cámara del aula en vivo (rostros difuminados)</h2>
-    <p><button id="btn-cam" type="button">Ver cámara en vivo</button> <span class="etq" id="estado-cam" hidden></span></p>
-    <div id="cam-caja" hidden><img id="cam-img" alt="Cámara del aula con los rostros difuminados"></div>
-    <p class="sub">La imagen solo se envía desde el aula mientras esta sección está abierta. Se guarda únicamente en la memoria del servidor
-      (nunca en disco) y se descarta en segundos. El difuminado puede fallar con rostros pequeños, de perfil o parcialmente tapados.</p></section>
 
   <section class="card"><h2>Indicadores por minuto <span class="etq" id="origen"></span></h2>
     <div id="grafico"></div><div id="tabla"></div></section>
@@ -111,22 +103,7 @@ async function indicadores() {
   $("tabla").innerHTML = `<table><thead><tr><th>Minuto</th>${cols.map(c => `<th>${esc(nombre(c))}</th>`).join("")}<th>Iluminación</th></tr></thead><tbody>` +
     F.slice(-12).reverse().map(r => `<tr><td>${Math.round(r.minuto)}</td>${cols.map(c => `<td>${r[c] ?? 0}</td>`).join("")}<td>${esc(r.iluminacion ?? "")}</td></tr>`).join("") + `</tbody></table>`;
 }
-let camActiva = false, tCam = null, sinSenal = 0;
-function refrescarCam() {
-  if (!camActiva) return;
-  const nueva = new Image(), estado = $("estado-cam");
-  nueva.onload = () => { $("cam-img").src = nueva.src; $("cam-img").hidden = false; estado.hidden = true; sinSenal = 0; tCam = setTimeout(refrescarCam, 600); };
-  nueva.onerror = () => { sinSenal++; $("cam-img").hidden = true; estado.hidden = false;
-    estado.textContent = sinSenal < 4 ? "conectando con el aula…" : "sin señal del aula"; tCam = setTimeout(refrescarCam, 1500); };
-  nueva.src = "vista.jpg?t=" + Date.now();
-}
-$("btn-cam").onclick = () => {
-  camActiva = !camActiva; sinSenal = 0; clearTimeout(tCam);
-  $("cam-caja").hidden = !camActiva; $("btn-cam").textContent = camActiva ? "Ocultar cámara" : "Ver cámara en vivo";
-  if (camActiva) refrescarCam(); else { $("cam-img").removeAttribute("src"); $("estado-cam").hidden = true; }
-};
-if (location.hash === "#camara") $("btn-cam").click();
-metricas(); indicadores(); setInterval(indicadores, 5000);
+metricas(); indicadores(); setInterval(indicadores, 30000);
 </script>
 </body>
 </html>

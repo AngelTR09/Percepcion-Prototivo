@@ -2,7 +2,6 @@
 services:
   aula:
     build: .
-    extra_hosts: ["host.docker.internal:host-gateway"]   # permite llegar a un panel local (pruebas)
     restart: unless-stopped
     ports: ["8000:8000"]
     devices: ["/dev/video0:/dev/video0"]
@@ -11,9 +10,5 @@ services:
       FUENTE: ${FUENTE:-0}                    # 0 = USB, o rtsp://usuario:clave@ip:554/stream
       PANEL_USUARIO: ${PANEL_USUARIO:-docente}
       PANEL_CLAVE: ${PANEL_CLAVE:-docente123}
-      NUBE_URL: ${NUBE_URL:-}                 # opcional: URL del panel en Render
-      NUBE_CLAVE: ${NUBE_CLAVE:-}             # opcional: API_KEY del panel en Render
-      NUBE_IMAGEN: ${NUBE_IMAGEN:-0}          # 1 = enviar a Render la imagen ya difuminada, solo mientras alguien la mira
-      AULA_ID: ${AULA_ID:-aula-1}
       VISTA_PREVIA: ${VISTA_PREVIA:-0}          # 1 = vista previa anonimizada en el panel local
     volumes: ["./datos:/datos"]

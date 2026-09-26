@@ -3,16 +3,11 @@
 services:
   aula:
     build: .
-    extra_hosts: ["host.docker.internal:host-gateway"]   # permite llegar a un panel local (pruebas)
     ports: ["8000:8000"]
     environment:
       FUENTE: /demo/aula_demo.mp4
       INTERVALO_S: "10"                       # un indicador cada 10 s para verlo enseguida (en el aula real son 60 s)
       PANEL_USUARIO: docente
       PANEL_CLAVE: ${PANEL_CLAVE:-docente123}
-      NUBE_URL: ${NUBE_URL:-}
-      NUBE_CLAVE: ${NUBE_CLAVE:-}
-      NUBE_IMAGEN: ${NUBE_IMAGEN:-0}          # 1 = enviar a Render la imagen ya difuminada, solo mientras alguien la mira
-      AULA_ID: ${AULA_ID:-aula-demo}
       VISTA_PREVIA: ${VISTA_PREVIA:-1}          # vista previa anonimizada en el panel local
     volumes: ["./demo:/demo:ro", "./datos:/datos"]

@@ -14,5 +14,3 @@ services:
         value: docente
       - key: PANEL_CLAVE
         generateValue: true        # Render genera la contraseña; se ve en Environment
-      - key: API_KEY
-        generateValue: true        # clave que usa el aula para enviar indicadores
