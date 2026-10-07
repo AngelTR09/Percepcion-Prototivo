@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+salidas/
+video_base/alertas/
+video_base/capturas/
+.pytest_cache/

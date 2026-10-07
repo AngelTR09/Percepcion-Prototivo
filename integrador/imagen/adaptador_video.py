@@ -1,0 +1,76 @@
+"""ÚNICO punto de contacto con el código de VIDEO (solo lectura, copia en video_base/).
+
+Traduce lo que VIDEO entrega a nuestro contrato de entrada. Ver docs/SOLICITUDES_A_VIDEO.md.
+"""
+import os
+import sys
+
+import cv2
+
+RUTA_VIDEO_BASE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "video_base"
+)
+
+
+def leer_frames(ruta_video, cada_n=1):
+    """Genera dicts del contrato de entrada. VIDEO solo lee cámara, así que abrimos el archivo aquí
+    (solicitud #2) y calculamos frame_id/timestamp (solicitud #1)."""
+    captura = cv2.VideoCapture(ruta_video)
+    if not captura.isOpened():
+        raise FileNotFoundError(f"No se pudo abrir el video: {ruta_video}")
+    fps = captura.get(cv2.CAP_PROP_FPS) or 30.0
+    fuente = os.path.basename(ruta_video)
+    frame_id = 0
+    try:
+        while True:
+            correcto, frame = captura.read()
+            if not correcto:
+                break
+            if frame_id % cada_n == 0:
+                yield {
+                    "frame_id": frame_id,
+                    "timestamp": frame_id / fps,
+                    "fps": fps,
+                    "fuente": fuente,
+                    "frame": frame,
+                }
+            frame_id += 1
+    finally:
+        captura.release()
+
+
+def cargar_detector():
+    """Devuelve detectar_objetos de VIDEO. Importación diferida porque carga el modelo
+    al importar (solicitud #4). Convierte su salida a {clase, confianza, bbox=[x1,y1,x2,y2]}."""
+    if RUTA_VIDEO_BASE not in sys.path:
+        sys.path.insert(0, RUTA_VIDEO_BASE)
+    from modulos.deteccion import detectar_objetos  # noqa: E402  (código de VIDEO)
+
+    def detectar(frame):
+        return [
+            {
+                "clase": d["clase"],
+                "confianza": d["confianza"],
+                "bbox": [d["x1"], d["y1"], d["x2"], d["y2"]],
+            }
+            for d in detectar_objetos(frame)
+        ]
+
+    return detectar
+
+
+def cargar_dibujante():
+    """Devuelve una función que dibuja con dibujar_detecciones de VIDEO (cajas azul/rojo)."""
+    if RUTA_VIDEO_BASE not in sys.path:
+        sys.path.insert(0, RUTA_VIDEO_BASE)
+    from modulos.deteccion import dibujar_detecciones  # noqa: E402  (código de VIDEO)
+
+    def dibujar(frame, detecciones):
+        originales = [
+            {"clase": d["clase"], "confianza": d["confianza"],
+             "x1": d["bbox"][0], "y1": d["bbox"][1], "x2": d["bbox"][2], "y2": d["bbox"][3]}
+            for d in detecciones
+        ]
+        return dibujar_detecciones(frame.copy(), originales)
+
+    return dibujar
