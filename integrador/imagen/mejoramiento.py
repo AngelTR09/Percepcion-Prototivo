@@ -38,3 +38,22 @@ def mejorar(frame, cfg_clahe, brillo_objetivo):
     """Gamma + CLAHE. Devuelve (imagen, gamma_usada)."""
     corregido, gamma = correccion_gamma(frame, brillo_objetivo)
     return clahe(corregido, cfg_clahe["clip"], cfg_clahe["grilla"]), gamma
+
+
+def mejorar_adaptativo(frame, c):
+    """Aplica solo lo que la imagen necesita según su calidad. `c` es el módulo config.
+    Devuelve (imagen, calidad_antes, calidad_despues, pasos_aplicados). Si ya está bien, no la toca."""
+    from . import metricas, preprocesamiento  # import local: evita ciclo con preprocesamiento
+
+    antes = metricas.calidad_sin_referencia(frame)
+    imagen, pasos = frame, []
+    if antes["brillo"] < c.UMBRAL_BRILLO:
+        imagen, _ = correccion_gamma(imagen, c.BRILLO_OBJETIVO)
+        pasos.append("gamma")
+    if metricas.calidad_sin_referencia(imagen)["ruido"] > c.UMBRAL_RUIDO:
+        imagen = preprocesamiento.aplicar_filtro(imagen, c.FILTRO_SALIDAS, c.FILTROS[c.FILTRO_SALIDAS])
+        pasos.append(c.FILTRO_SALIDAS)
+    if metricas.calidad_sin_referencia(imagen)["contraste"] < c.UMBRAL_CONTRASTE:
+        imagen = clahe(imagen, c.CLAHE["clip"], c.CLAHE["grilla"])
+        pasos.append("clahe")
+    return imagen, antes, metricas.calidad_sin_referencia(imagen), pasos

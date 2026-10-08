@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 .env
 2_docker/datos/
+
+# Fuera del repo: entrenamiento (4 GB de dataset), carpeta de descarte y duplicado de VIDEO
+entrenamiento/
+trash/
+Prototivo de video/

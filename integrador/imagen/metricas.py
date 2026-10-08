@@ -48,3 +48,18 @@ def recuperadas(referencia, candidatas, iou_minimo):
                 aciertos += 1
                 break
     return aciertos
+
+
+def calidad_sin_referencia(imagen):
+    """Calidad sin imagen limpia: brillo (0-1), contraste, nitidez (varianza del Laplaciano) y
+    ruido estimado (método de Immerkaer sobre la luminancia)."""
+    gris = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY).astype(np.float64)
+    nucleo = np.array([[1, -2, 1], [-2, 4, -2], [1, -2, 1]], dtype=np.float64)
+    alto, ancho = gris.shape
+    ruido = float(np.sqrt(np.pi / 2) / (6 * (ancho - 2) * (alto - 2)) * np.abs(cv2.filter2D(gris, -1, nucleo)[1:-1, 1:-1]).sum())
+    return {
+        "brillo": round(float(gris.mean() / 255.0), 4),
+        "contraste": round(float(gris.std()), 2),
+        "nitidez": round(float(cv2.Laplacian(gris, cv2.CV_64F).var()), 2),
+        "ruido": round(ruido, 2),
+    }

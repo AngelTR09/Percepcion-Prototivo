@@ -32,3 +32,11 @@ ORB_PUNTOS = 500
 
 # Comparación con las detecciones de VIDEO (RF-09)
 IOU_MINIMO = 0.5
+
+# Mejora adaptativa de las salidas de VIDEO (sin imagen de referencia)
+UMBRAL_BRILLO = 0.40      # luminancia media (0-1) por debajo de la cual se aplica gamma
+UMBRAL_CONTRASTE = 55.0   # desviación estándar de luminancia por debajo de la cual se aplica CLAHE
+UMBRAL_RUIDO = 3.0        # sigma estimado (Immerkaer) por encima del cual se filtra
+FILTRO_SALIDAS = "gaussiano"
+EXTENSIONES_IMAGEN = (".jpg", ".jpeg", ".png", ".bmp")
+EXTENSIONES_VIDEO = (".mp4", ".avi", ".mov", ".webm", ".mkv")

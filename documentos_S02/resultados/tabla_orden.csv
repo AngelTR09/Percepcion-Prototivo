@@ -1,0 +1,3 @@
+Orden de etapas,SSIM,Ruido estimado (sigma),Tiempo (ms)
+A: iluminación → mediana 3 + gaussiano 3,0.626,0.68,1.4
+B: bilateral → iluminación,0.744,6.88,3.4

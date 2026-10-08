@@ -52,3 +52,12 @@ def test_pipeline_produccion_sin_referencia():
     registro, mejorado, dets = pipeline.procesar_frame_produccion(entrada, lambda f: [])
     assert registro["calidad"]["psnr"] is None and registro["deteccion_video"]["n"] == 0
     assert mejorado.shape[2] == 3 and dets == []
+
+
+def test_mejora_adaptativa_solo_si_hace_falta():
+    normal = (np.random.default_rng(0).normal(128, 60, (120, 160, 3))).clip(0, 255).astype(np.uint8)
+    _, _, _, pasos = mejoramiento.mejorar_adaptativo(normal, config)
+    assert "gamma" not in pasos                       # imagen con buen brillo: no se aclara
+    oscuro = mejoramiento.degradar(frame_sintetico(), 0.2, 15, 1)
+    mejorada, antes, despues, pasos = mejoramiento.mejorar_adaptativo(oscuro, config)
+    assert "gamma" in pasos and despues["brillo"] > antes["brillo"]

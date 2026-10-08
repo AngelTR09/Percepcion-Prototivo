@@ -1,0 +1,6 @@
+Versión,Brillo medio,Contraste (desv. est.),SSIM
+Oscura,35.6,25.5,0.406
+Ecualización,120.8,77.3,0.733
+CLAHE,67.4,47.6,0.689
+Gamma automática,114.6,43.2,0.941
+Gamma + CLAHE,123.2,56.1,0.886

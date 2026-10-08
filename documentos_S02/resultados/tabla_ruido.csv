@@ -1,0 +1,17 @@
+Ruido,Filtro,PSNR (dB),SSIM,Tiempo (ms)
+Gaussiano,Sin filtro (ruidosa),20.38,0.46,0.0
+Gaussiano,Media 5x5,24.04,0.492,4.7
+Gaussiano,Gaussiano 5x5,26.2,0.672,2.2
+Gaussiano,Mediana 3,25.21,0.603,1.0
+Gaussiano,Mediana 5,24.32,0.492,0.8
+Gaussiano,Bilateral,27.22,0.723,10.9
+Gaussiano,NLM,26.09,0.706,166.2
+Gaussiano,Mediana 3 + gaussiano 3,25.83,0.638,0.3
+Sal y pimienta,Sin filtro (ruidosa),18.28,0.457,0.0
+Sal y pimienta,Media 5x5,23.71,0.476,0.2
+Sal y pimienta,Gaussiano 5x5,25.29,0.634,0.4
+Sal y pimienta,Mediana 3,28.96,0.827,0.3
+Sal y pimienta,Mediana 5,24.78,0.545,0.8
+Sal y pimienta,Bilateral,18.19,0.37,2.5
+Sal y pimienta,NLM,19.11,0.465,139.8
+Sal y pimienta,Mediana 3 + gaussiano 3,27.52,0.764,0.5

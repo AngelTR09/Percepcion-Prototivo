@@ -1,5 +1,7 @@
 # Integrador: VIDEO + IMAGEN
 
+> **Atribución — grupo VIDEO.** `video_base/` es una copia sin modificar del proyecto *Sistema de Supervisión Inteligente* del grupo VIDEO: https://github.com/cesarcabanillas1921-bit/SistemaSupervisionExamenes (commit `265366d`). Autoría y derechos son de su grupo; el repositorio de origen no declara licencia. Se incluye solo para ejecutar la secuencia VIDEO → IMAGEN del curso, y solo `imagen/adaptador_video.py` lo importa.
+
 - `video_base/`: copia de solo lectura del código del grupo VIDEO (repo `SistemaSupervisionExamenes`, commit `265366d`). No se modifica.
 - `imagen/`: módulo del grupo IMAGEN. Solo `adaptador_video.py` conoce el código de VIDEO.
 - `docs/`: inventario de VIDEO, solicitudes, requisitos y [AVANCE_S07.md](docs/AVANCE_S07.md).
@@ -16,6 +18,14 @@ python -m imagen.ejecutar_integrado --fuente datos/padang.webm --salida salidas/
 python -m imagen.ejecutar_integrado --fuente 0 --mostrar      # cámara en vivo, q para salir
 ```
 Genera `video_integrado.mp4` (frame mejorado + cajas de VIDEO), `imagen.jsonl`, `imagen.csv` y `resumen_integrado.json` con los FPS.
+
+Mejorar las **salidas de VIDEO** (capturas de alerta, imágenes o videos ya generados), sin tocar su código:
+```bash
+python -m imagen.mejorar_salidas --entrada video_base/alertas --salida salidas/mejoradas
+python -m imagen.mejorar_salidas --entrada resultado.mp4 --salida salidas/mejoradas
+python -m imagen.mejorar_salidas --entrada video_base/alertas --salida salidas/mejoradas --vigilar   # atento a alertas nuevas
+```
+Por cada archivo decide qué aplicar (gamma si está oscuro, filtro si hay ruido, CLAHE si falta contraste) y guarda la versión mejorada, una comparación lado a lado y `calidad_antes_despues.csv`. Si la imagen ya está bien, no la toca.
 
 Por separado:
 ```bash
