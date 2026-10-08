@@ -40,3 +40,5 @@ UMBRAL_RUIDO = 3.0        # sigma estimado (Immerkaer) por encima del cual se fi
 FILTRO_SALIDAS = "gaussiano"
 EXTENSIONES_IMAGEN = (".jpg", ".jpeg", ".png", ".bmp")
 EXTENSIONES_VIDEO = (".mp4", ".avi", ".mov", ".webm", ".mkv")
+PIXELES_RECORTE_PEQUENO = 300_000   # recortes y capturas chicas usan NLM (más fuerte, aún rápido)
+NLM_FUERZA = 12

@@ -27,6 +27,14 @@ python -m imagen.mejorar_salidas --entrada video_base/alertas --salida salidas/m
 ```
 Por cada archivo decide qué aplicar (gamma si está oscuro, filtro si hay ruido, CLAHE si falta contraste) y guarda la versión mejorada, una comparación lado a lado y `calidad_antes_despues.csv`. Si la imagen ya está bien, no la toca.
 
+**Alerta de VIDEO + mejora instantánea.** Aplica la misma regla de VIDEO (objeto no permitido visible `TIEMPO_ALERTA` segundos) con su detector, su lista de objetos no permitidos y su `guardar_alerta`. Al dispararse, IMAGEN mejora el frame completo y recorta y mejora el objeto que la activó:
+```bash
+python -m imagen.alerta_mejorada --fuente datos/examen.mp4 --salida salidas/alertas
+python -m imagen.alerta_mejorada --fuente 0 --mostrar        # cámara en vivo
+```
+Para probarlo con un video sin objetos prohibidos: `--tambien-prohibir mochila --tiempo 1 --degradar`.
+Guarda `*_frame_mejorado.jpg`, `*_objeto_comparacion.jpg` y `alertas_mejoradas.jsonl` (calidad antes/después y ms). Requiere `pygame`, dependencia de VIDEO.
+
 Por separado:
 ```bash
 python -m imagen.ejecutar_video --video datos/padang.webm --salida salidas/video --cada-n 6

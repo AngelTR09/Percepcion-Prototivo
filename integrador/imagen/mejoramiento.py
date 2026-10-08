@@ -47,12 +47,19 @@ def mejorar_adaptativo(frame, c):
 
     antes = metricas.calidad_sin_referencia(frame)
     imagen, pasos = frame, []
+    # 1) Limpiar ANTES de aclarar: el gamma amplifica el ruido de las zonas oscuras
+    if antes["ruido"] > c.UMBRAL_RUIDO:
+        if imagen.shape[0] * imagen.shape[1] <= c.PIXELES_RECORTE_PEQUENO:
+            imagen = cv2.fastNlMeansDenoisingColored(imagen, None, c.NLM_FUERZA, c.NLM_FUERZA, 7, 21)
+            pasos.append("nlm")
+        else:
+            imagen = preprocesamiento.aplicar_filtro(imagen, c.FILTRO_SALIDAS, c.FILTROS[c.FILTRO_SALIDAS])
+            pasos.append(c.FILTRO_SALIDAS)
+    # 2) Aclarar si está oscura
     if antes["brillo"] < c.UMBRAL_BRILLO:
         imagen, _ = correccion_gamma(imagen, c.BRILLO_OBJETIVO)
         pasos.append("gamma")
-    if metricas.calidad_sin_referencia(imagen)["ruido"] > c.UMBRAL_RUIDO:
-        imagen = preprocesamiento.aplicar_filtro(imagen, c.FILTRO_SALIDAS, c.FILTROS[c.FILTRO_SALIDAS])
-        pasos.append(c.FILTRO_SALIDAS)
+    # 3) Contraste local
     if metricas.calidad_sin_referencia(imagen)["contraste"] < c.UMBRAL_CONTRASTE:
         imagen = clahe(imagen, c.CLAHE["clip"], c.CLAHE["grilla"])
         pasos.append("clahe")

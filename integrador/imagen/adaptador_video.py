@@ -104,3 +104,16 @@ def leer_fuente(fuente, cada_n=1):
             frame_id += 1
     finally:
         cerrar_camara(camara)
+
+
+def cargar_alerta():
+    """Devuelve las piezas de la alerta de VIDEO, sin modificarlas:
+    (es_no_permitido, tiempo_alerta, guardar_alerta). guardar_alerta es la suya: guarda el JPG en
+    video_base/alertas/ y suena el aviso; devuelve la ruta del archivo."""
+    if RUTA_VIDEO_BASE not in sys.path:
+        sys.path.insert(0, RUTA_VIDEO_BASE)
+    from configuracion.config import TIEMPO_ALERTA  # noqa: E402  (código de VIDEO)
+    from modulos.registro import guardar_alerta  # noqa: E402
+    from principal import es_no_permitido  # noqa: E402  (solo importa; su bucle no se ejecuta)
+
+    return es_no_permitido, TIEMPO_ALERTA, guardar_alerta

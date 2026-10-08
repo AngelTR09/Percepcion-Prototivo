@@ -61,3 +61,13 @@ def test_mejora_adaptativa_solo_si_hace_falta():
     oscuro = mejoramiento.degradar(frame_sintetico(), 0.2, 15, 1)
     mejorada, antes, despues, pasos = mejoramiento.mejorar_adaptativo(oscuro, config)
     assert "gamma" in pasos and despues["brillo"] > antes["brillo"]
+
+
+def test_recorte_y_ampliacion_de_alerta():
+    from imagen import alerta_mejorada
+    frame = frame_sintetico()
+    recorte = alerta_mejorada.recorte_con_margen(frame, [40, 30, 120, 90])
+    assert recorte.shape[0] >= 60 and recorte.shape[1] >= 80
+    assert max(alerta_mejorada.ampliar(recorte, 320).shape[:2]) >= 320
+    # un bbox pegado al borde no debe salirse de la imagen
+    assert alerta_mejorada.recorte_con_margen(frame, [0, 0, 20, 20]).size > 0
