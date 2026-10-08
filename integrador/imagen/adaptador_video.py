@@ -74,3 +74,33 @@ def cargar_dibujante():
         return dibujar_detecciones(frame.copy(), originales)
 
     return dibujar
+
+
+def leer_fuente(fuente, cada_n=1):
+    """Fuente en vivo o archivo. Si `fuente` es un número, usa la cámara a través de las funciones
+    de VIDEO (iniciar_camara/obtener_frame); si es una ruta, lee el archivo con leer_frames."""
+    if not str(fuente).isdigit():
+        yield from leer_frames(fuente, cada_n)
+        return
+    import time
+    if RUTA_VIDEO_BASE not in sys.path:
+        sys.path.insert(0, RUTA_VIDEO_BASE)
+    from configuracion import config as config_video  # noqa: E402  (código de VIDEO)
+    from modulos.camara import cerrar_camara, iniciar_camara, obtener_frame  # noqa: E402
+
+    config_video.CAMARA = int(fuente)  # VIDEO lee este valor al abrir la cámara
+    camara = iniciar_camara()
+    if camara is None:
+        raise RuntimeError(f"No se pudo abrir la cámara {fuente}")
+    inicio, frame_id = time.perf_counter(), 0
+    try:
+        while True:
+            frame = obtener_frame(camara)
+            if frame is None:
+                break
+            if frame_id % cada_n == 0:
+                yield {"frame_id": frame_id, "timestamp": time.perf_counter() - inicio,
+                       "fps": 0.0, "fuente": f"camara{fuente}", "frame": frame}
+            frame_id += 1
+    finally:
+        cerrar_camara(camara)

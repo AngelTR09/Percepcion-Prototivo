@@ -10,6 +10,13 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-imagen.txt pygame
 ./correr_todo.sh                      # VIDEO y luego IMAGEN sobre datos/padang.webm
 ```
+Secuencia completa VIDEO → IMAGEN con salida de video (modo producción):
+```bash
+python -m imagen.ejecutar_integrado --fuente datos/padang.webm --salida salidas/integrado
+python -m imagen.ejecutar_integrado --fuente 0 --mostrar      # cámara en vivo, q para salir
+```
+Genera `video_integrado.mp4` (frame mejorado + cajas de VIDEO), `imagen.jsonl`, `imagen.csv` y `resumen_integrado.json` con los FPS.
+
 Por separado:
 ```bash
 python -m imagen.ejecutar_video --video datos/padang.webm --salida salidas/video --cada-n 6

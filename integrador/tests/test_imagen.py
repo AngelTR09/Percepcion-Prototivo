@@ -45,3 +45,10 @@ def test_pipeline_contrato_y_frame_corrupto():
     assert registro["version_contrato"] == "0.1" and registro["timestamp"] == 1.5
     with pytest.raises(ValueError):
         pipeline.procesar_frame({**entrada, "frame": None}, lambda f: [])
+
+
+def test_pipeline_produccion_sin_referencia():
+    entrada = {"frame_id": 1, "timestamp": 0.5, "fps": 2.0, "fuente": "x", "frame": frame_sintetico()}
+    registro, mejorado, dets = pipeline.procesar_frame_produccion(entrada, lambda f: [])
+    assert registro["calidad"]["psnr"] is None and registro["deteccion_video"]["n"] == 0
+    assert mejorado.shape[2] == 3 and dets == []

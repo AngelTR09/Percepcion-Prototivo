@@ -82,3 +82,32 @@ def procesar_frame(entrada, detector, degradar=True, degradacion=None):
         "5_mascara": mascara,
     }
     return registro, imagenes, tabla_filtros
+
+
+def procesar_frame_produccion(entrada, detector, filtro="gaussiano"):
+    """Modo producción (sin referencia limpia): gamma -> filtro fijo -> CLAHE -> segmentar -> características
+    -> una sola pasada del detector de VIDEO sobre el frame mejorado. Devuelve (registro, mejorado, detecciones)."""
+    inicio = time.perf_counter()
+    if entrada.get("frame") is None or entrada["frame"].size == 0:
+        raise ValueError("frame vacío o corrupto")
+    frame = preprocesamiento.normalizar_tamano(entrada["frame"], config.ANCHO_PROCESO)
+    iluminado, gamma = mejoramiento.correccion_gamma(frame, config.BRILLO_OBJETIVO)
+    filtrado = preprocesamiento.aplicar_filtro(iluminado, filtro, config.FILTROS[filtro])
+    mejorado = mejoramiento.clahe(filtrado, config.CLAHE["clip"], config.CLAHE["grilla"])
+    objetos, _ = segmentacion.segmentar(
+        mejorado, config.AREA_MINIMA, config.MAX_OBJETOS, config.KERNEL_MORFOLOGIA
+    )
+    rasgos = caracteristicas.extraer(mejorado, len(objetos), config)
+    detecciones = detector(mejorado)
+    registro = {
+        "version_contrato": config.VERSION_CONTRATO,
+        "frame_id": entrada["frame_id"],
+        "timestamp": round(entrada["timestamp"], 3),
+        "calidad": {"psnr": None, "ssim": None, "contraste": round(metricas.contraste(mejorado), 3),
+                    "filtro_usado": filtro, "gamma": round(gamma, 3)},
+        "objetos": objetos,
+        "caracteristicas": rasgos,
+        "deteccion_video": {"n": len(detecciones), "clases": sorted({d["clase"] for d in detecciones})},
+        "tiempo_ms": round((time.perf_counter() - inicio) * 1000, 1),
+    }
+    return registro, mejorado, detecciones
