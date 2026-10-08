@@ -1,4 +1,15 @@
-# Smart Classroom Vision — panel y entrega de avance
+# Percepción Computacional — Proyecto integrador (Grupo IMAGEN)
+
+Sistema único hecho por cuatro grupos: **VIDEO → (IMAGEN ‖ AUDIO) → PREDICCIÓN**. Este repositorio contiene el módulo de IMAGEN conectado al código del grupo VIDEO.
+
+- **Empieza aquí:** [DOCUMENTACION_PROYECTO.md](DOCUMENTACION_PROYECTO.md) — qué hay, cómo ejecutarlo, resultados y pendientes.
+- **Código y cómo correrlo:** [integrador/](integrador/README.md) (incluye la atribución al grupo VIDEO).
+- **Requisitos, inventario de VIDEO y avance S07:** [integrador/docs/](integrador/docs/).
+- **Trabajo anterior (S02):** [documentos_S02/](documentos_S02/) y, más abajo, el panel de *Smart Classroom Vision*.
+
+---
+
+## Anexo: Smart Classroom Vision — panel y entrega de avance (S02)
 
 Contenido, con un propósito para cada parte:
 
