@@ -1,0 +1,8 @@
+{
+  "frames_procesados": 104,
+  "detecciones_por_clase": {
+    "persona": 1279,
+    "mochila": 174
+  },
+  "ms_por_frame": 15.5
+}

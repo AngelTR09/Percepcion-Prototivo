@@ -1,0 +1,8 @@
+{
+  "fuente": "datos/padang.webm",
+  "frames_procesados": 620,
+  "frames_omitidos": 0,
+  "fps_punta_a_punta": 26.3,
+  "ms_por_frame_imagen": 32.9,
+  "detecciones_video": 8179
+}

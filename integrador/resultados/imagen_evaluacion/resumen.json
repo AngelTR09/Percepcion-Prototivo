@@ -1,0 +1,35 @@
+{
+  "frames_procesados": 11,
+  "frames_omitidos": 0,
+  "tiempo_medio_ms": 740.0,
+  "psnr_degradado": 6.79,
+  "psnr_mejorado": 17.61,
+  "ssim_degradado": 0.1488,
+  "ssim_mejorado": 0.666,
+  "detecciones_referencia": 154,
+  "recuperadas_sobre_degradado": 47,
+  "recuperadas_sobre_solo_filtro": 51,
+  "recuperadas_sobre_mejorado": 93,
+  "filtros": {
+    "media": {
+      "psnr": 15.41,
+      "ssim": 0.5621,
+      "ms": 0.4
+    },
+    "gaussiano": {
+      "psnr": 15.55,
+      "ssim": 0.5933,
+      "ms": 0.6
+    },
+    "mediana": {
+      "psnr": 15.15,
+      "ssim": 0.5451,
+      "ms": 1.2
+    },
+    "bilateral": {
+      "psnr": 15.35,
+      "ssim": 0.5313,
+      "ms": 16.8
+    }
+  }
+}
