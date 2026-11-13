@@ -29,6 +29,12 @@ jobs:
         run: |
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-dev.txt -r requirements-video.txt
+      - name: Una sola variante de OpenCV (la misma que el Dockerfile)
+        run: |
+          # ultralytics trae opencv-python y pisa a headless: sin esto las pruebas corren en otra version que produccion
+          pip uninstall -y opencv-python
+          pip install --force-reinstall --no-deps opencv-python-headless==4.11.0.86
+          python -c "import cv2; print(cv2.__version__); assert cv2.__version__.startswith('4.11'), cv2.__version__"
       - name: Ensamblaje (puente, servidor, cadena completa)
         run: python -m pytest tests -q
       - name: VIDEO + IMAGEN (integrador)
