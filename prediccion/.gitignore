@@ -1,0 +1,82 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+ENV/
+
+# Python y caché
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+node_modules/
+.ruff_cache/
+.mypy_cache/
+.coverage
+
+# DeepFace y pesos pesados descargados dinámicamente
+.deepface/
+weights/
+*.h5
+*.keras
+
+# Logs y variables de entorno
+*.log
+*.tmp
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite*
+kaggle.json
+.env
+.env.*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+entrenamiento/datos/
+entrenamiento/runs/
+data/
+
+# Artefactos de entrenamiento e inferencia, fuera de la entrega
+models/
+modelos/
+training/
+entrenamiento/
+notebooks/
+reports/
+datasets/
+*.pt
+*.pth
+*.onnx
+*.npz
+*.npy
+*.pkl
+!backend/entrenamiento_prediccion/modelo_emociones_facial.pkl
+!backend/entrenamiento_prediccion/modelo_sucesos_academicos.pkl
+*.pickle
+*.joblib
+*.safetensors
+*.ckpt
+*.parquet
+_entrada_*
+_archivo/
+PREDICCION_ARCHIVO/
+pyrightconfig.json
+
+# La plantilla de configuración sí forma parte del proyecto
+!.env.example
+
+# Documentos y presentaciones de entrega local (prohibido subir a GitHub)
+docs_entrega/
+*.docx
+*.pptx

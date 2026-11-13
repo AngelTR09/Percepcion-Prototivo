@@ -2,6 +2,7 @@
 
 Sistema único hecho por cuatro grupos: **VIDEO → (IMAGEN ‖ AUDIO) → PREDICCIÓN**. Este repositorio contiene el módulo de IMAGEN conectado al código del grupo VIDEO.
 
+- **Sistema ensamblado (VIDEO + IMAGEN + PREDICCIÓN, Docker y Render):** [README_ENSAMBLAJE.md](README_ENSAMBLAJE.md) · cómo subir cambios: [CONTRIBUIR.md](CONTRIBUIR.md).
 - **Empieza aquí:** [DOCUMENTACION_PROYECTO.md](DOCUMENTACION_PROYECTO.md) — qué hay, cómo ejecutarlo, resultados y pendientes.
 - **Código y cómo correrlo:** [integrador/](integrador/README.md) (incluye la atribución al grupo VIDEO).
 - **Requisitos, inventario de VIDEO y avance S07:** [integrador/docs/](integrador/docs/).

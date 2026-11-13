@@ -1,0 +1,10 @@
+# Librerias de todo el sistema
+-r video/requisitos.txt
+streamlit
+pandas
+scikit-image
+# Modelos nuevos de VIDEO (YOLOv5 de audifonos y seguimiento)
+seaborn
+lap
+# Modelos entrenados de PREDICCION (.pkl)
+scikit-learn

@@ -7,3 +7,7 @@ __pycache__/
 entrenamiento/
 trash/
 Prototivo de video/
+.venv/
+.pytest_cache/
+pip_torch.log
+node_modules/

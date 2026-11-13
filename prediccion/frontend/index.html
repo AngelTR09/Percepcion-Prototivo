@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Supervisión Inteligente · Módulo de Predicción (AulaPredict)</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- ====================================================================
+         SIDEBAR IZQUIERDO FIJO (#0F294A - Azul Marino Institucional)
+         Enfocado EXCLUSIVAMENTE en el Módulo de Predicción
+         ==================================================================== -->
+    <aside class="app-sidebar">
+      <div>
+        <div class="sidebar-brand">
+          <div class="brand-emblem" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 2L3 7l9 5 9-5-9-5zM3 17l9 5 9-5M3 12l9 5 9-5" />
+            </svg>
+          </div>
+          <div class="brand-titles">
+            <h1 class="brand-title">Sistema de Supervisión Inteligente</h1>
+            <span class="brand-subtitle">Módulo de Predicción (AulaPredict)</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-menu" aria-label="Módulo de Predicción">
+          <div class="menu-section-label">MÓDULO ESPECIALIZADO</div>
+          <button type="button" class="menu-item active" aria-current="page">
+            <span class="menu-icon" aria-hidden="true">🔮</span>
+            <span class="menu-text">Predicciones</span>
+            <span class="menu-badge-active">ACTIVO</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-model-info">
+          <div class="model-info-heading">OPERACIÓN DEL MÓDULO</div>
+          <div class="model-stat-row">
+            <span>Modelo facial:</span>
+            <strong>HOG + SVM (4 clases)</strong>
+          </div>
+          <div class="model-stat-row">
+            <span>Identidad:</span>
+            <strong>No atribuida</strong>
+          </div>
+          <div class="model-stat-row">
+            <span>Abstención:</span>
+            <strong>≥ 55% · Margen ≥ 10%</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="system-status-chip">
+          <span class="dot-online" aria-hidden="true"></span>
+          <span>Red Local Conectada</span>
+        </div>
+        <div class="system-version">AulaPredict Core · Predicción Facial</div>
+      </div>
+    </aside>
+
+    <!-- ====================================================================
+         CONTENIDO PRINCIPAL
+         ==================================================================== -->
+    <div class="app-main-wrap">
+      <header class="app-header">
+        <div class="header-titles">
+          <div class="view-tag">Cerebro Integrador de Predicción</div>
+          <h2 class="view-title">📸 Panel de Inferencia de Predicciones</h2>
+          <p class="view-subtitle">Análisis facial y detección de objetos por cámara o fotografía, interpretación visual contextual y recepción automática de modalidades</p>
+        </div>
+
+        <div class="header-user-profile" aria-label="Rol activo">
+          <div class="user-avatar" aria-hidden="true">AD</div>
+          <div class="user-meta">
+            <span class="user-name">Administrador</span>
+            <span class="user-role">Supervisión Docente</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="dashboard-content">
+        <!-- ================================================================
+             FILA SUPERIOR (2 COLUMNAS): CAPTURA IZQ + DETECCIÓN Y EXPRESIÓN DER
+             ================================================================ -->
+        <div class="top-row-grid">
+          <!-- Columna Izquierda: Captura de Imagen para Predicción -->
+          <section class="card camera-card" id="camera-capture-card" aria-labelledby="camera-card-title">
+            <div class="card-header-bar">
+              <div class="card-title-group">
+                <h3 class="card-title" id="camera-card-title">📸 Captura de Imagen para Predicción</h3>
+                <span id="capture-status-indicator" class="live-indicator-chip waiting">
+                  <span class="dot-live" aria-hidden="true"></span>
+                  <span id="capture-status-text" role="status">Cámara detenida</span>
+                </span>
+              </div>
+
+              <div class="capture-secondary-actions">
+                <label for="input-upload-image" id="label-upload-image" class="btn-action-ghost cursor-pointer" title="Sube una fotografía JPEG, PNG o WebP para evaluar el modelo facial">
+                  📁 Subir Foto
+                </label>
+                <input id="input-upload-image" type="file" accept="image/jpeg,image/png,image/webp" style="display: none;">
+              </div>
+            </div>
+
+            <!-- Viewport de Captura (Video en vivo / Imagen congelada con Canvas) -->
+            <div class="camera-viewport-container">
+              <video id="webcam-feed" playsinline autoplay muted></video>
+              <img id="captured-image-display" alt="Captura congelada para predicción" style="display: none;">
+              <canvas id="overlay-canvas"></canvas>
+
+              <div id="camera-placeholder" class="camera-fallback-screen">
+                <div class="cam-icon-circle" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h4>Encuadra la Cámara Web</h4>
+                <p>Haz clic para iniciar el visor y capturar un rostro frontal, o sube una fotografía desde tu computadora.</p>
+                <button id="btn-start-camera" type="button" class="btn-primary-action">
+                  ▶ Encender cámara
+                </button>
+              </div>
+
+              <div class="hud-telemetry-badge" aria-hidden="true">
+                <span class="dot-rec"></span>
+                <span id="hud-fps-label">EVALUACIÓN FACIAL INDEPENDIENTE</span>
+              </div>
+
+              <div class="camera-overlay-bottom-bar">
+                <div class="cam-timestamp">
+                  <span id="live-datetime">—</span>
+                </div>
+                <div class="cam-location-tag">
+                  <span id="cam-location-label">Cámara local</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Controles de fotografía -->
+            <div class="capture-controls-toolbar">
+              <button id="btn-capture-predict" type="button" class="btn-main-capture" title="Captura un fotograma y ejecuta el análisis facial" disabled>
+                <span class="capture-icon" aria-hidden="true">📸</span>
+                <span class="capture-text">Capturar fotograma</span>
+              </button>
+
+              <button id="btn-new-capture" type="button" class="btn-secondary-capture" title="Limpia la captura actual y vuelve al visor">
+                🔄 Nueva Captura
+              </button>
+              <button id="btn-stop-camera" type="button" class="btn-secondary-capture" hidden>Detener cámara</button>
+            </div>
+
+            <div class="auto-capture-controls">
+              <label><input id="auto-capture-enabled" type="checkbox"> Captura automática</label>
+              <label for="auto-capture-interval">Intervalo por cámara (s)</label>
+              <input id="auto-capture-interval" type="number" min="5" value="5" step="1">
+            </div>
+            <p id="auto-capture-status" class="capture-note" role="status">La captura automática requiere una cámara activa.</p>
+            <div id="resultado-facial-captura" class="sr-only" aria-live="polite"></div>
+          </section>
+
+          <!-- Columna Derecha: Detección y Análisis Facial + Reconocimiento Facial -->
+          <div class="right-analysis-column">
+            <section class="card students-selection-card compact-mode" id="students-selection-card">
+              <div class="card-header-bar" id="students-header-bar">
+                <div class="students-header-title-wrap">
+                  <h3 class="card-title" id="students-panel-title">🎯 Detección y Análisis Facial</h3>
+                  <p class="card-subtitle-note" id="students-panel-subtitle">Captura o sube una fotografía para detectar el rostro y estimar su expresión</p>
+                </div>
+                <div class="students-header-actions">
+                  <div class="students-counter-chip" id="students-counter-chip">
+                    <span id="students-count-badge">Esperando captura</span>
+                  </div>
+                  <button type="button" id="btn-toggle-students-panel" class="btn-panel-toggle" aria-expanded="false" hidden>
+                    <span id="students-toggle-icon" aria-hidden="true">▼</span>
+                    <span id="students-toggle-label">Detalles</span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="students-grid" class="students-grid-container" role="region" aria-label="Estado de detección facial">
+                <div class="facial-waiting-compact">
+                  <span class="facial-waiting-icon" aria-hidden="true">📸</span>
+                  <div class="facial-waiting-text">
+                    <strong>Sin resultados de análisis todavía</strong>
+                    <p>Enciende la cámara o sube una fotografía para detectar el rostro sin asociar identidades.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="card prediction-card emotions-card" id="emotions-results-card">
+              <div class="card-header-clean">
+                <h3 class="card-title-sm" id="facial-card-title">
+                  🔮 Reconocimiento Facial <span class="selected-student-label" id="facial-student-label">(En espera)</span>
+                </h3>
+                <span class="sub-label" id="facial-card-sublabel">Probabilidades de las 4 expresiones observables · En espera</span>
+              </div>
+
+              <div class="emotions-bars-list" id="emotions-bars-list">
+                <div class="emotion-item" id="emo-item-neutral">
+                  <div class="emotion-title-row">
+                    <span class="emo-label" id="emo-label-neutral">Neutral (😐)</span>
+                    <span id="emo-pct-neutral" class="emo-val text-neutral">0%</span>
+                  </div>
+                  <div class="progress-track">
+                    <div id="emo-bar-neutral" class="progress-fill fill-neutral" style="width: 0%;"></div>
+                  </div>
+                </div>
+
+                <div class="emotion-item" id="emo-item-felicidad">
+                  <div class="emotion-title-row">
+                    <span class="emo-label" id="emo-label-felicidad">Alegría (😊)</span>
+                    <span id="emo-pct-felicidad" class="emo-val text-felicidad">0%</span>
+                  </div>
+                  <div class="progress-track">
+                    <div id="emo-bar-felicidad" class="progress-fill fill-felicidad" style="width: 0%;"></div>
+                  </div>
+                </div>
+
+                <div class="emotion-item" id="emo-item-tristeza">
+                  <div class="emotion-title-row">
+                    <span class="emo-label" id="emo-label-tristeza">Tristeza (😢)</span>
+                    <span id="emo-pct-tristeza" class="emo-val text-tristeza">0%</span>
+                  </div>
+                  <div class="progress-track">
+                    <div id="emo-bar-tristeza" class="progress-fill fill-tristeza" style="width: 0%;"></div>
+                  </div>
+                </div>
+
+                <div class="emotion-item" id="emo-item-enojo">
+                  <div class="emotion-title-row">
+                    <span class="emo-label" id="emo-label-enojo">Enojo (😠)</span>
+                    <span id="emo-pct-enojo" class="emo-val text-enojo">0%</span>
+                  </div>
+                  <div class="progress-track">
+                    <div id="emo-bar-enojo" class="progress-fill fill-enojo" style="width: 0%;"></div>
+                  </div>
+                </div>
+
+                <div class="emotion-item" id="emo-item-miedo" style="display: none;">
+                  <div class="emotion-title-row">
+                    <span class="emo-label" id="emo-label-miedo">Miedo (😨)</span>
+                    <span id="emo-pct-miedo" class="emo-val text-miedo">0%</span>
+                  </div>
+                  <div class="progress-track">
+                    <div id="emo-bar-miedo" class="progress-fill fill-miedo" style="width: 0%;"></div>
+                  </div>
+                </div>
+
+                <div class="emotion-item" id="emo-item-sorpresa" style="display: none;">
+                  <div class="emotion-title-row">
+                    <span class="emo-label" id="emo-label-sorpresa">Sorpresa (😲)</span>
+                    <span id="emo-pct-sorpresa" class="emo-val text-sorpresa">0%</span>
+                  </div>
+                  <div class="progress-track">
+                    <div id="emo-bar-sorpresa" class="progress-fill fill-sorpresa" style="width: 0%;"></div>
+                  </div>
+                </div>
+
+                <div class="emotion-item" id="emo-item-disgusto" style="display: none;">
+                  <div class="emotion-title-row">
+                    <span class="emo-label" id="emo-label-disgusto">Disgusto (🤢)</span>
+                    <span id="emo-pct-disgusto" class="emo-val text-disgusto">0%</span>
+                  </div>
+                  <div class="progress-track">
+                    <div id="emo-bar-disgusto" class="progress-fill fill-disgusto" style="width: 0%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dominant-emotion-pill-wrap">
+                <div id="dominant-pill-box" class="dominant-pill">
+                  <span class="dot-accent-orange" aria-hidden="true"></span>
+                  <span id="dominant-emotion-container">Estado Observable: <strong id="dominant-emotion-text">Sin evaluar — Esperando captura</strong></span>
+                </div>
+                <div id="action-pill-box" class="action-pill">
+                  <span class="dot-action-blue" aria-hidden="true"></span>
+                  <span>Alcance: <strong id="student-action-badge">Análisis facial individual · Identidad desconocida</strong></span>
+                </div>
+              </div>
+
+              <div class="card-footer-badge" id="facial-card-footer">
+                <span>Modelo Facial HOG+SVM (fase8-1.0) · Umbral ≥ 55% y margen ≥ 10%</span>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- ================================================================
+             ZONA INFERIOR: RESULTADOS PREDICTIVOS + PROYECCIÓN ACADÉMICA
+             ================================================================ -->
+        <div class="bottom-row-grid">
+          <section class="card prediction-card events-card" id="events-results-card">
+            <div class="card-header-clean">
+              <h3 class="card-title-sm" id="events-card-title">
+                📋 Resultados Predictivos <span class="selected-student-label" id="events-student-label">(En espera)</span>
+              </h3>
+            </div>
+
+            <div class="events-scroll-content">
+              <div class="event-block">
+                <div class="block-heading">
+                  <span id="events-block1-icon" class="block-icon" aria-hidden="true">🔬</span>
+                  <span id="events-block1-title" class="block-title">Observación Visual, Resultados e Hipótesis</span>
+                </div>
+                <div id="causes-list" class="probabilities-list">
+                  <div class="prediction-empty-notice"><span>📸</span><span>No existen resultados todavía. Captura un fotograma o sube una imagen para evaluar el modelo facial.</span></div>
+                </div>
+              </div>
+
+              <div class="event-block">
+                <div class="block-heading">
+                  <span id="events-block2-icon" class="block-icon" aria-hidden="true">🛡️</span>
+                  <span id="events-block2-title" class="block-title">Advertencias, Límites y Evidencia Requerida</span>
+                </div>
+                <div id="consequences-list" class="probabilities-list">
+                  <div class="prediction-empty-notice"><span>ℹ️</span><span>Ante incertidumbre, ausencia de rostro o múltiples rostros se explicará el motivo de abstención sin inventar predicciones.</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer-badge" id="events-card-footer">
+              <span>Inferencia independiente por modalidad · Sin sucesos artificiales</span>
+            </div>
+          </section>
+
+          <section class="card prediction-card academic-card" id="academic-results-card">
+            <div class="card-header-clean">
+              <h3 class="card-title-sm" id="academic-card-title">
+                📈 Análisis y Proyección Académica <span class="selected-student-label" id="academic-student-label">(En espera)</span>
+              </h3>
+            </div>
+
+            <div id="risk-score-banner" class="risk-score-banner bg-risk-unavailable">
+              <div class="score-number-col">
+                <span id="riesgo-score-num" class="score-huge">—</span>
+                <span class="score-den">/ 100</span>
+              </div>
+              <div class="score-meta-col">
+                <span class="score-label">PROYECCIÓN ACADÉMICA</span>
+                <strong id="riesgo-nivel-text" class="score-level-text">Sin datos curriculares suficientes</strong>
+              </div>
+            </div>
+
+            <div class="exam-risk-alert-box">
+              <div class="alert-icon-wrap" aria-hidden="true">⚠️</div>
+              <div class="alert-text-wrap">
+                <strong>Condición de evaluación:</strong>
+                <p id="exam-risk-desc">La proyección académica se mostrará automáticamente cuando exista información curricular válida. Las expresiones faciales o vocales no sustituyen calificaciones.</p>
+              </div>
+            </div>
+
+            <div class="assistant-narrative-box">
+              <div class="assistant-header-row">
+                <span class="assistant-sparkle" aria-hidden="true">✨</span>
+                <span class="assistant-title" id="assistant-box-title">Resumen de Evaluación</span>
+              </div>
+              <p id="assistant-narrative-text" class="assistant-body-text">
+                Sin resultados todavía. Captura o sube una fotografía facial, o aguarda datos compatibles para mostrar la evaluación correspondiente.
+              </p>
+            </div>
+
+            <div class="card-footer-badge" id="academic-card-footer">
+              <span>Basado exclusivamente en evidencia verificada · Identidad no atribuida</span>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

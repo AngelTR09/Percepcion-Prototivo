@@ -1,0 +1,12 @@
+# Prueba local del mismo contenedor que corre en Render:  docker compose up --build  ->  http://localhost:8000
+services:
+  supervision:
+    build:
+      context: .
+      args:
+        CON_VIDEO: "1"      # "0" = sin detector de VIDEO (imagen liviana)
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: "8000"
+      INTEGRADO_DETECTOR: "video"   # "off" desactiva el detector (la cadena responde 503)

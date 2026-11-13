@@ -1,0 +1,156 @@
+{
+  "fecha": "2026-10-08T14:43:56",
+  "camara": 0,
+  "fotogramas": 1923,
+  "fps_aproximado": 8.0,
+  "tiempo_alerta": 5,
+  "tolerancia_seg": 0.0,
+  "umbrales": {
+    "persona": 0.2,
+    "mochila": 0.15,
+    "telefono": 0.15,
+    "audifonos": 0.15,
+    "reloj": 0.15,
+    "cuaderno": 0.8,
+    "libro": 0.8,
+    "laptop": 0.25
+  },
+  "persona_detectada_en_fotogramas": 0.977,
+  "resumen": {
+    "telefono": {
+      "estado": "deteccion debil",
+      "umbral_original": 0.15,
+      "umbral_calibrado": 0.15,
+      "confianza_mediana_presente": 0.225,
+      "confianza_maxima_ausente": 0.0,
+      "fotogramas_detectado_original": 0.11,
+      "fotogramas_detectado_calibrado": 0.11,
+      "falsos_original": 0.0,
+      "falsos_calibrado": 0.0,
+      "parpadeos_original": 35,
+      "parpadeos_calibrado": 35
+    },
+    "cuaderno/libro": {
+      "estado": "deteccion debil",
+      "umbral_original": 0.8,
+      "umbral_calibrado": 0.8,
+      "confianza_mediana_presente": 0.158,
+      "confianza_maxima_ausente": 0.06,
+      "fotogramas_detectado_original": 0.0,
+      "fotogramas_detectado_calibrado": 0.169,
+      "falsos_original": 0.0,
+      "falsos_calibrado": 0.0,
+      "parpadeos_original": 0,
+      "parpadeos_calibrado": 0
+    },
+    "audifonos": {
+      "estado": "el modelo de VIDEO no reconoce este objeto en esta escena",
+      "umbral_original": 0.15,
+      "umbral_calibrado": 0.15,
+      "confianza_mediana_presente": 0.0,
+      "confianza_maxima_ausente": 0.416,
+      "fotogramas_detectado_original": 0.0,
+      "fotogramas_detectado_calibrado": 0.0,
+      "falsos_original": 0.004,
+      "falsos_calibrado": 0.0,
+      "parpadeos_original": 0,
+      "parpadeos_calibrado": 0
+    },
+    "reloj": {
+      "estado": "el modelo de VIDEO no reconoce este objeto en esta escena",
+      "umbral_original": 0.15,
+      "umbral_calibrado": 0.15,
+      "confianza_mediana_presente": 0.0,
+      "confianza_maxima_ausente": 0.0,
+      "fotogramas_detectado_original": 0.0,
+      "fotogramas_detectado_calibrado": 0.0,
+      "falsos_original": 0.0,
+      "falsos_calibrado": 0.0,
+      "parpadeos_original": 0,
+      "parpadeos_calibrado": 0
+    }
+  },
+  "alarma_por_paso": [
+    {
+      "paso": "sin_objetos",
+      "tipo": "negativo",
+      "luz": "normal",
+      "alarma_original": "-",
+      "correcta_original": true,
+      "alarma_calibrada": "-",
+      "correcta_calibrada": true
+    },
+    {
+      "paso": "lapicero",
+      "tipo": "negativo",
+      "luz": "normal",
+      "alarma_original": "-",
+      "correcta_original": true,
+      "alarma_calibrada": "-",
+      "correcta_calibrada": true
+    },
+    {
+      "paso": "celular_mano",
+      "tipo": "positivo",
+      "luz": "normal",
+      "alarma_original": "-",
+      "correcta_original": false,
+      "alarma_calibrada": "-",
+      "correcta_calibrada": false
+    },
+    {
+      "paso": "celular_escritorio",
+      "tipo": "positivo",
+      "luz": "normal",
+      "alarma_original": "-",
+      "correcta_original": false,
+      "alarma_calibrada": "-",
+      "correcta_calibrada": false
+    },
+    {
+      "paso": "cuaderno",
+      "tipo": "positivo",
+      "luz": "normal",
+      "alarma_original": "-",
+      "correcta_original": false,
+      "alarma_calibrada": "-",
+      "correcta_calibrada": false
+    },
+    {
+      "paso": "audifonos",
+      "tipo": "positivo",
+      "luz": "normal",
+      "alarma_original": "-",
+      "correcta_original": false,
+      "alarma_calibrada": "-",
+      "correcta_calibrada": false
+    },
+    {
+      "paso": "reloj",
+      "tipo": "positivo",
+      "luz": "normal",
+      "alarma_original": "-",
+      "correcta_original": false,
+      "alarma_calibrada": "-",
+      "correcta_calibrada": false
+    },
+    {
+      "paso": "poca_luz_sin_objetos",
+      "tipo": "negativo",
+      "luz": "baja",
+      "alarma_original": "-",
+      "correcta_original": true,
+      "alarma_calibrada": "-",
+      "correcta_calibrada": true
+    },
+    {
+      "paso": "poca_luz_celular",
+      "tipo": "positivo",
+      "luz": "baja",
+      "alarma_original": "-",
+      "correcta_original": false,
+      "alarma_calibrada": "-",
+      "correcta_calibrada": false
+    }
+  ]
+}

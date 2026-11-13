@@ -1,16 +1,15 @@
-# Blueprint de Render: New + > Blueprint, y elegir este repositorio.
+# Blueprint de Render: New + > Blueprint, y elegir este repositorio. Construye el Dockerfile de la raiz.
 services:
   - type: web
-    name: smart-classroom-panel
-    runtime: python
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4
+    name: supervision-inteligente
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: standard                  # medido: ~590 MB con YOLO cargado; el plan free (512 MB) solo sirve con INTEGRADO_DETECTOR=off
     healthCheckPath: /salud
+    autoDeploy: true                # solo redespliega lo que llega a main (protegida: solo via Pull Request)
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.7
-      - key: PANEL_USUARIO
-        value: docente
-      - key: PANEL_CLAVE
-        generateValue: true        # Render genera la contraseña; se ve en Environment
+      - key: INTEGRADO_DETECTOR
+        value: video                # "off" para desactivar YOLO y ahorrar memoria
+      - key: FRONTEND_ORIGINS
+        value: https://supervision-inteligente.onrender.com

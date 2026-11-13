@@ -1,0 +1,26 @@
+.git
+.github
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+*.log
+.env
+.env.*
+
+# Material que no corre en el servidor
+2_docker
+3_metricas
+documentos_S02
+ensamblaje
+datos
+static
+integrador/resultados
+integrador/docs
+integrador/datos
+integrador/salidas
+prediccion/docs
+prediccion/ejemplos
+prediccion/**/node_modules
+tests
+*.md
