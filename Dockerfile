@@ -18,11 +18,12 @@ RUN apt-get update \
 
 WORKDIR /app
 
+# ultralytics trae opencv-python (con GUI, pide libGL): se deja una sola variante, la headless.
 # Dependencias primero: la capa se reutiliza mientras no cambien los requirements.
 COPY requirements.txt requirements-video.txt ./
 RUN if [ "$CON_VIDEO" = "1" ]; then \
         pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu \
-        && pip install -r requirements.txt -r requirements-video.txt; \
+        && pip install -r requirements.txt -r requirements-video.txt         && pip uninstall -y opencv-python         && pip install --force-reinstall --no-deps opencv-python-headless==4.11.0.86; \
     else \
         pip install -r requirements.txt; \
     fi
