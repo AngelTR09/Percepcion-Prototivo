@@ -26,6 +26,7 @@ video (archivo) ─► adaptador_video ─► degradar* ─► gamma ─► filt
 | S15 | FPS por etapa y por configuración; análisis de sesgo de desempeño por clase, tamaño y posición; ética y uso responsable | `rendimiento.py`, `sesgo.py`, `ejecutar_rendimiento.py`, `docs/ANALISIS_SESGO_ETICA.md` |
 | S12 | MLP con Keras (Flatten + Dense relu + softmax), parada temprana, matriz de confusión, precisión/recall/F1, línea base mayoritaria | `mlp.py`, `ejecutar_mlp.py`, `ejecutar_recortes.py` |
 | S13 | CNN (Conv + MaxPool) con aumento geométrico; transfer learning con MobileNetV2 (cabeza y afinado); robustez a rotaciones de S04 | `cnn.py`, `ejecutar_cnn.py` |
+| S14 | Búsqueda aleatoria de hiperparámetros con validación por tiempo; dropout, L2 y parada temprana; tabla comparativa con varias semillas | `hiperparametros.py`, `ejecutar_hiperparametros.py` |
 
 ## 4. Resultados
 Video: `padang.webm` (aula, 1080p, 10 s; CC BY-SA 4.0, Wikimedia Commons). 11 frames (1 de cada 60). Detecciones de VIDEO que reaparecen (clase igual, IoU ≥ 0.5) respecto al frame limpio, de 154:
@@ -210,3 +211,30 @@ Lectura:
 - **Transfer learning es la opción más robusta aquí** y con casi nada que entrenar, pero se midió con una sola semilla y sin probar rotación en entrenamiento; no se debe leer como "mejor que el aumento".
 - **Límites** (los mismos de S12): etiquetas de VIDEO y no manuales, una sola escena con las mismas personas en entrenamiento y prueba, 68 mochilas en prueba (un error = 1.5 puntos), y MobileNetV2 ya vio ImageNet, que contiene personas y mochilas.
 Pendiente: S14 (hiperparámetros, regularización y tabla comparativa con intervalos).
+
+## 11. S14 — Hiperparámetros, regularización y evaluación comparativa
+`python -m imagen.ejecutar_hiperparametros --salida salidas/s14 --recortes32 salidas/recortes/recortes.npz --recortes96 salidas/recortes96/recortes.npz` (entorno de laboratorio; unos 10 minutos).
+
+**Protocolo.** Los hiperparámetros se eligen solo con una validación tomada del final del entrenamiento, por tiempo (1 594 recortes de ajuste, 457 de validación con 59 mochilas); el conjunto de prueba (851 recortes, 68 mochilas) no entra a la búsqueda y se mide una sola vez al final. Búsqueda aleatoria: 16 configuraciones por familia (`config.HIPERPARAMETROS`), 3 semillas cada una. Puntaje de selección: F1 de la clase mochila promediado entre la validación normal y la rotada 25° (S04), porque la rotación fue el punto débil en S13. La comparación final usa 5 semillas y reporta media ± desviación.
+
+**Resultado en el conjunto de prueba** (recall = el de mochila; rotado = prueba girada 25°):
+
+| Modelo | Parámetros | Exactitud | Recall | Exactitud rotado | Recall rotado | s |
+|---|---|---|---|---|---|---|
+| Línea base (siempre "persona") | 0 | 0.920 | 0 | 0.920 | 0 | — |
+| MLP de S12 | 401 730 | 0.992 ± 0.004 | 0.932 ± 0.007 | 0.920 ± 0.000 | 0.000 | 1.8 |
+| MLP ajustado | 819 842 | 0.979 ± 0.010 | 0.944 ± 0.006 | 0.920 ± 0.002 | 0.024 ± 0.047 | 4.3 |
+| CNN de S13 (con aumento) | 281 730 | 0.997 ± 0.003 | 0.982 ± 0.014 | 0.981 ± 0.030 | 0.759 ± 0.372 | 5.1 |
+| **CNN ajustada** | 355 778 | **1.000 ± 0.000** | **0.997 ± 0.006** | **0.999 ± 0.001** | **0.982 ± 0.014** | 15.0 |
+| CNN ajustada sin parada temprana | 355 778 | 0.991 ± 0.012 | 0.997 ± 0.006 | 1.000 ± 0.001 | 0.994 ± 0.007 | 16.0 |
+| Transfer MobileNetV2 (cabeza) | 2 260 546 (2 562 entrenables) | 0.999 ± 0.000 | 0.985 ± 0.000 | 0.981 ± 0.009 | 0.926 ± 0.108 | 59.9 |
+
+Configuración elegida para la CNN: filtros (32, 64, 128), Dense 128, dropout 0.4, L2 1e-3, tasa 3e-4 y **aumento geométrico**. Para el MLP: capas (256, 128), dropout 0, L2 1e-3, tasa 1e-3.
+
+Lectura:
+- **Ajustar el MLP no sirve.** Las 16 configuraciones puntúan entre 0.47 y 0.53 en validación (desviación ≈ 0.085): es ruido, no señal. En la prueba, el MLP "ajustado" es peor que el de S12 (F1 de mochila 0.88 contra 0.95) con el doble de parámetros. Su problema es de fondo: no tolera la rotación (recall rotado ≈ 0), y ningún hiperparámetro lo arregla.
+- **En la CNN, lo que importa es el aumento geométrico.** Promedio de validación con aumento 0.983 y sin él 0.618; dropout (0.67 sin, 0.81 con 0.2) y L2 (0.64 sin, 0.82 con 1e-3) ayudan, y la profundidad no (la red más chica, (16, 32), promedió 0.85 y la más profunda 0.66). Estos promedios están confundidos entre sí (16 configuraciones no cubren el espacio), así que ordenan, no miden el efecto de cada uno.
+- **Mejor CNN, menos varianza.** Con la CNN ajustada el recall con rotación pasa de 0.759 ± 0.372 a 0.982 ± 0.014, y la variabilidad entre semillas casi desaparece. No se aisló qué cambio la causa: cambiaron capacidad, dropout, L2 y tasa a la vez.
+- **Parada temprana: hay un compromiso.** Se detiene mirando la pérdida de validación *sin rotar*; entrenar las 30 épocas da más robustez a la rotación (recall 0.994 contra 0.982) pero peor exactitud sin rotar y más inestable (0.991 ± 0.012 contra 1.000). Ninguna de las dos domina.
+- **Transfer learning:** de nuevo muy bueno sin rotar, y menos estable con rotación (0.926 ± 0.108); cuesta 60 s por entrenamiento contra 15 s de la CNN ajustada.
+- **Límites.** Validación con solo 59 mochilas y prueba con 68 (un error = 1.5 puntos); etiquetas de VIDEO, un solo video y las mismas personas en entrenamiento y prueba; una tarea fácil donde la CNN ajustada llega a 1.000, así que no hay margen para distinguir modelos mejores. Que "ajustar" no sirva para el MLP y que el aumento sea decisivo es el hallazgo; los valores exactos no se deben extrapolar a otra aula.

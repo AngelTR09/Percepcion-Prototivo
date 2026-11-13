@@ -95,3 +95,14 @@ CNN = {"filtros": (32, 64), "denso": 64, "dropout": 0.0, "l2": 0.0, "tasa_aprend
 TRANSFER = {"base": "MobileNetV2", "lado": 96, "pesos": "imagenet", "tasa_cabeza": 1e-3,
             "tasa_afinado": 1e-5, "capas_afinadas": 30, "epocas_afinado": 10}
 ROBUSTEZ_GRADOS = (0.0, 10.0, 25.0)  # rotaciones (S04) con que se prueba el modelo ya entrenado
+
+# Búsqueda de hiperparámetros (S14): búsqueda aleatoria con validación por tiempo; la prueba no participa
+HIPERPARAMETROS = {
+    "espacio_mlp": {"capas": [(64,), (128,), (128, 64), (256, 128)], "dropout": [0.0, 0.2, 0.4],
+                    "l2": [0.0, 1e-5, 1e-4, 1e-3], "tasa": [3e-3, 1e-3, 3e-4]},
+    "espacio_cnn": {"filtros": [(16, 32), (32, 64), (32, 64, 128)], "denso": [32, 64, 128], "dropout": [0.0, 0.2, 0.4],
+                    "l2": [0.0, 1e-5, 1e-4, 1e-3], "tasa": [3e-3, 1e-3, 3e-4], "aumento": [False, True]},
+    "n_configuraciones": 16, "semillas_busqueda": 3, "semillas_final": 5, "semilla_busqueda": 7,
+    "fraccion_validacion": 0.25,      # últimos 25 % de los frames del entrenamiento (por tiempo) para elegir
+    "grados_seleccion": (0.0, 25.0),  # se elige por F1 de la clase minoritaria promediado en estas rotaciones de la validación
+}
