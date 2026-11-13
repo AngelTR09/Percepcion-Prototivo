@@ -11,3 +11,4 @@ Prototivo de video/
 .pytest_cache/
 pip_torch.log
 node_modules/
+.venv-lab/
