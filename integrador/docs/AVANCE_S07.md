@@ -22,6 +22,7 @@ video (archivo) ─► adaptador_video ─► degradar* ─► gamma ─► filt
 | S05 | Otsu + apertura/cierre + contornos (bbox, área, perímetro, centroide) | `segmentacion.py` |
 | S05 | Umbral adaptativo (`adaptiveThreshold`) y segmentación por regiones (watershed), comparados con Otsu por IoU de máscaras | `segmentacion.py`, `ejecutar_segmentacion.py` |
 | S06 | Canny, Harris, ORB, media HSV | `caracteristicas.py` |
+| S06 | Sobel comparado con Canny; ORB con descriptores y `BFMatcher` + homografía RANSAC; `matchTemplate` como alternativa | `caracteristicas.py`, `ejecutar_patrones.py` |
 
 ## 4. Resultados
 Video: `padang.webm` (aula, 1080p, 10 s; CC BY-SA 4.0, Wikimedia Commons). 11 frames (1 de cada 60). Detecciones de VIDEO que reaparecen (clase igual, IoU ≥ 0.5) respecto al frame limpio, de 154:
@@ -99,3 +100,34 @@ Cómo leerlo:
 - **Defecto corregido en el proceso.** La primera versión calculaba las semillas con un umbral global y el IoU contra VIDEO cayó a 0.06; con el umbral por componente subió a 0.15. Los parámetros (bloque 101, c = 3, fracción 0.6) se eligieron barriendo `padang.webm`, no la imagen de prueba.
 - Con un solo video de aula y 11 frames, estos números no se generalizan a otras escenas.
 Pendiente: comparación sobre más videos, y decidir si watershed entra al pipeline (hoy no: `pipeline.py` sigue usando Otsu).
+
+## 7. S06 — Sobel, ORB completo y reconocimiento de patrones
+`python -m imagen.ejecutar_patrones --video datos/padang.webm --salida salidas/patrones --cada-n 60` (mismos 11 frames). `caracteristicas.extraer` no cambió: sigue siendo el contrato de columnas con PREDICCIÓN.
+
+**Sobel vs Canny** (promedio por frame, tolerancia de 1 px):
+
+| | Densidad de bordes | ms | Cubierto por el otro |
+|---|---|---|---|
+| Canny | 0.118 | 2.2 | 76 % de sus píxeles coinciden con un borde de Sobel |
+| Sobel (umbral 20 % de la magnitud máxima) | 0.130 | 2.6 | 99.7 % de sus píxeles coinciden con un borde de Canny |
+
+Sobel solo marca los gradientes fuertes y Canny los confirma casi todos; Canny además recupera bordes finos que Sobel deja bajo el umbral. Su costo es parecido.
+
+**Reconocimiento de patrones.** Se recorta la detección de VIDEO más segura de cada frame (11 recortes) y se busca en el mismo frame transformado con las transformaciones de S04. Acierto = IoU ≥ 0.5 con la caja transformada.
+
+| Transformación | ORB + BFMatcher + RANSAC | matchTemplate |
+|---|---|---|
+| Rotar +10° / −10° / +25° | 10/11 en las tres | 0/11 en las tres |
+| Escalar 0.7 | 10/11 | 0/11 |
+| Escalar 1.3 | 8/11 | 2/11 |
+| Trasladar 10 % | 10/11 | 11/11 |
+| Voltear horizontal | 0/11 | 0/11 |
+
+Tiempo por búsqueda: ORB 15–30 ms, matchTemplate 10 ms.
+
+Cómo leerlo:
+- `matchTemplate` solo sirve cuando el patrón no cambia de orientación ni de tamaño (traslación). ORB tolera rotación y escala, a cambio de algo más de tiempo.
+- Ninguno reconoce el patrón volteado: los descriptores ORB no son invariantes al espejo.
+- **Limitaciones medidas en las pruebas sintéticas.** (1) ORB ignora los puntos a menos de 31 px del borde; un recorte de 120 px quedaba con 4 puntos y no se podía localizar nada. Con `borde = 15` queda con ~50. (2) RANSAC aceptaba homografías degeneradas (una caja de 19×58 px con 10 inliers); se descartan si el cuadrilátero no es convexo o su área está fuera de 0.25–4× la de la plantilla. (3) Reducir la imagen borra el detalle fino: en la escena sintética ORB localiza con ampliación y reducción 0.9×, pero no con 0.8×; en los frames reales sí llega a 0.7× porque tienen más textura.
+- Reconocimiento básico de patrones aquí significa "encontrar un recorte conocido"; no clasifica objetos. Falta usarlo dentro del pipeline (hoy no entra: `pipeline.py` no cambió).
+- 11 recortes de un solo video: sirven de comparación, no para generalizar.
