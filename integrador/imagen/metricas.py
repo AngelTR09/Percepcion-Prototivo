@@ -63,3 +63,20 @@ def calidad_sin_referencia(imagen):
         "nitidez": round(float(cv2.Laplacian(gris, cv2.CV_64F).var()), 2),
         "ruido": round(ruido, 2),
     }
+
+
+def iou_mascaras(a, b):
+    """IoU entre dos máscaras binarias (0/255 o booleanas) del mismo tamaño. Dos máscaras vacías valen 1.0."""
+    a, b = np.asarray(a) > 0, np.asarray(b) > 0
+    if a.shape != b.shape:
+        raise ValueError("las máscaras deben tener el mismo tamaño")
+    union = np.logical_or(a, b).sum()
+    return float(np.logical_and(a, b).sum() / union) if union else 1.0
+
+
+def mascara_de_cajas(forma, cajas):
+    """Máscara 0/255 con las cajas [x1, y1, x2, y2] rellenas (por ejemplo, las detecciones de VIDEO)."""
+    mascara = np.zeros(forma[:2], np.uint8)
+    for x1, y1, x2, y2 in cajas:
+        mascara[max(int(y1), 0):max(int(y2), 0), max(int(x1), 0):max(int(x2), 0)] = 255
+    return mascara

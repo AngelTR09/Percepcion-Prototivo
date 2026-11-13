@@ -54,3 +54,9 @@ TRANSFORMACIONES = [
     {"nombre": "voltear_horizontal", "tipo": "voltear"},
 ]
 VISIBLE_MINIMO = 0.5   # un objeto cuenta como referencia si queda al menos esta fracción de su caja dentro del encuadre
+
+# Segmentación (S05): alternativas a Otsu que se comparan por IoU de máscaras
+SEGMENTACION = {
+    "adaptativo": {"bloque": 101, "c": 3},     # umbral local: la ventana debe ser bastante mayor que el objeto (elegido sobre padang.webm)
+    "watershed": {"fraccion_distancia": 0.6},  # semillas = píxeles a >= 60 % de la distancia máxima de su propia componente
+}

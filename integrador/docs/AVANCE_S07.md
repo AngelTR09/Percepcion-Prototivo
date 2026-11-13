@@ -20,6 +20,7 @@ video (archivo) ─► adaptador_video ─► degradar* ─► gamma ─► filt
 | S04 | Corrección gamma automática, CLAHE, redimensión | `mejoramiento.py` |
 | S04 | Rotación, escalamiento, traslación y volteo con `warpAffine`; robustez del detector de VIDEO | `transformaciones.py`, `ejecutar_geometricas.py` |
 | S05 | Otsu + apertura/cierre + contornos (bbox, área, perímetro, centroide) | `segmentacion.py` |
+| S05 | Umbral adaptativo (`adaptiveThreshold`) y segmentación por regiones (watershed), comparados con Otsu por IoU de máscaras | `segmentacion.py`, `ejecutar_segmentacion.py` |
 | S06 | Canny, Harris, ORB, media HSV | `caracteristicas.py` |
 
 ## 4. Resultados
@@ -81,3 +82,20 @@ Se transforma cada frame (rotación, escalamiento, traslación, volteo) y se tra
 
 Lectura: el detector de VIDEO es sensible a la rotación (cae a 0.30 con 25°) y razonablemente estable ante escala y traslación. Ni el volteo, que no cambia el contenido, llega a 1.0: parte de las detecciones son marginales (confianza baja) y aparecen o desaparecen con cualquier cambio de píxeles, así que la tasa mide la estabilidad del detector y no solo la geometría. Las cajas transformadas se verifican en `tests/test_transformaciones.py` con un detector de prueba que sí es exacto (IoU > 0.7 en todas las transformaciones).
 Pendiente (no hecho): reentrenar o afinar VIDEO con estos aumentos; esto solo mide.
+
+## 6. S05 — Umbral adaptativo y segmentación por regiones (watershed)
+`python -m imagen.ejecutar_segmentacion --video datos/padang.webm --salida salidas/segmentacion --cada-n 60` (mismos 11 frames; VIDEO detecta 14.0 objetos por frame).
+
+| Método | Objetos/frame | IoU vs Otsu | IoU vs cajas de VIDEO | ms/frame |
+|---|---|---|---|---|
+| Otsu + morfología + contornos | 7.5 | 1.000 | 0.217 | 3.9 |
+| Umbral adaptativo (bloque 101, c = 3) | 17.4 | 0.601 | **0.256** | 9.7 |
+| Watershed (semillas al 60 % de la distancia) | 14.5 | 0.512 | 0.153 | 153.0 |
+
+Cómo leerlo:
+- **La referencia es débil.** Una caja de VIDEO incluye fondo y las máscaras separan por intensidad, no por objeto; por eso todos los IoU son bajos. Sirve para comparar métodos entre sí, no como exactitud absoluta.
+- **Umbral adaptativo.** Mejora un poco a Otsu y es el único que funciona con iluminación despareja: en una escena sintética con verdad conocida (fondo que sube de 30 a 200) Otsu obtiene IoU 0.09 y el adaptativo 0.998 (`tests/test_segmentacion_regiones.py`). Con un bloque chico fragmenta (23.8 objetos por frame con bloque 51); la ventana debe ser bastante mayor que el objeto.
+- **Watershed.** Es el único que separa objetos que se tocan (los contornos de una máscara binaria los funden en uno). Su número de objetos (14.5) se acerca al de VIDEO (14.0), pero su máscara cubre menos y es 40 veces más lento que Otsu: no se usó en el pipeline.
+- **Defecto corregido en el proceso.** La primera versión calculaba las semillas con un umbral global y el IoU contra VIDEO cayó a 0.06; con el umbral por componente subió a 0.15. Los parámetros (bloque 101, c = 3, fracción 0.6) se eligieron barriendo `padang.webm`, no la imagen de prueba.
+- Con un solo video de aula y 11 frames, estos números no se generalizan a otras escenas.
+Pendiente: comparación sobre más videos, y decidir si watershed entra al pipeline (hoy no: `pipeline.py` sigue usando Otsu).
