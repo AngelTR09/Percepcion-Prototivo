@@ -60,3 +60,9 @@ SEGMENTACION = {
     "adaptativo": {"bloque": 101, "c": 3},     # umbral local: la ventana debe ser bastante mayor que el objeto (elegido sobre padang.webm)
     "watershed": {"fraccion_distancia": 0.6},  # semillas = píxeles a >= 60 % de la distancia máxima de su propia componente
 }
+
+# Bordes y reconocimiento de patrones (S06)
+SOBEL = {"ksize": 3, "umbral_relativo": 0.2, "tolerancia_px": 1}  # borde = magnitud > 20 % de la máxima; tolerancia al comparar con Canny
+ORB_EMPAREJAR = {"puntos": 1000, "borde": 15, "ratio": 0.75, "min_inliers": 8, "ransac_px": 5.0,
+                 "area_relativa": (0.25, 4.0)}  # área hallada / área de la plantilla: fuera de este rango se descarta  # borde: franja sin detección (15 en vez de 31 para recortes chicos); ratio de Lowe; homografía RANSAC
+PLANTILLA_UMBRAL = 0.6  # correlación normalizada mínima para aceptar matchTemplate
