@@ -88,3 +88,10 @@ MLP = {"capas": (128, 64), "dropout": 0.0, "l2": 0.0, "tasa_aprendizaje": 1e-3,
        "epocas": 30, "lote": 64, "validacion": 0.2, "paciencia": 4, "semilla": 7}
 FASHION_REDUCIDO = {"entrenamiento": 10000, "prueba": 2000, "semilla": 7}   # el sílabo pide un dataset reducido
 RECORTES = {"lado": 32, "cada_n": 10, "min_lado_px": 24, "clases": ("persona", "mochila"), "fraccion_prueba": 0.3}
+
+# CNN y transfer learning con Keras (S13)
+CNN = {"filtros": (32, 64), "denso": 64, "dropout": 0.0, "l2": 0.0, "tasa_aprendizaje": 1e-3, "semilla": 7,
+       "aumento": {"rotacion": 0.07, "traslacion": 0.1, "zoom": 0.1}}   # fracciones: 0.07 de vuelta = ~25 grados
+TRANSFER = {"base": "MobileNetV2", "lado": 96, "pesos": "imagenet", "tasa_cabeza": 1e-3,
+            "tasa_afinado": 1e-5, "capas_afinadas": 30, "epocas_afinado": 10}
+ROBUSTEZ_GRADOS = (0.0, 10.0, 25.0)  # rotaciones (S04) con que se prueba el modelo ya entrenado

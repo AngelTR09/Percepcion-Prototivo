@@ -36,6 +36,7 @@ def main():
     p.add_argument("--video", required=True)
     p.add_argument("--salida", default="salidas/recortes")
     p.add_argument("--cada-n", type=int, default=r["cada_n"])
+    p.add_argument("--lado", type=int, default=r["lado"], help="píxeles de lado del recorte (32 para MLP/CNN; 96 para transfer learning)")
     a = p.parse_args()
     os.makedirs(a.salida, exist_ok=True)
     detector = adaptador_video.cargar_detector()
@@ -43,7 +44,7 @@ def main():
     for entrada in adaptador_video.leer_frames(a.video, a.cada_n):
         try:
             frame = preprocesamiento.normalizar_tamano(entrada["frame"], config.ANCHO_PROCESO)
-            for recorte, clase in recortes_del_frame(frame, detector(frame), list(r["clases"]), r["lado"], r["min_lado_px"]):
+            for recorte, clase in recortes_del_frame(frame, detector(frame), list(r["clases"]), a.lado, r["min_lado_px"]):
                 xs.append(recorte)
                 ys.append(clase)
                 fs.append(entrada["frame_id"])
