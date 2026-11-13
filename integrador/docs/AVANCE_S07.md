@@ -23,6 +23,7 @@ video (archivo) ─► adaptador_video ─► degradar* ─► gamma ─► filt
 | S05 | Umbral adaptativo (`adaptiveThreshold`) y segmentación por regiones (watershed), comparados con Otsu por IoU de máscaras | `segmentacion.py`, `ejecutar_segmentacion.py` |
 | S06 | Canny, Harris, ORB, media HSV | `caracteristicas.py` |
 | S06 | Sobel comparado con Canny; ORB con descriptores y `BFMatcher` + homografía RANSAC; `matchTemplate` como alternativa | `caracteristicas.py`, `ejecutar_patrones.py` |
+| S15 | FPS por etapa y por configuración; análisis de sesgo de desempeño por clase, tamaño y posición; ética y uso responsable | `rendimiento.py`, `sesgo.py`, `ejecutar_rendimiento.py`, `docs/ANALISIS_SESGO_ETICA.md` |
 
 ## 4. Resultados
 Video: `padang.webm` (aula, 1080p, 10 s; CC BY-SA 4.0, Wikimedia Commons). 11 frames (1 de cada 60). Detecciones de VIDEO que reaparecen (clase igual, IoU ≥ 0.5) respecto al frame limpio, de 154:
@@ -52,9 +53,9 @@ Evidencias antes/después: `salidas/padang_luz0.15/evidencias/`. Salidas para PR
 ## 5. Limitaciones
 - Ningún video libre disponible contiene teléfonos, cuadernos ni audífonos; solo se midieron personas y mochilas.
 - La degradación es sintética y la muestra es chica (11 frames, un video).
-- El tiempo por frame no permite tiempo real; el pipeline trabaja en diferido.
+- Tiempo real: el modo producción alcanza 8.8 FPS a 960 px y 15.6 FPS a 640 px (sección 8); el modo de evaluación (4 pasadas de YOLO con métricas) sigue siendo diferido.
 - Con video de baja calidad la mejora no ayuda al detector (ver hallazgo).
-- Pendiente de ética y sesgo (RNF-09): condiciones de falla documentadas aquí, falta el análisis de sesgo del dataset.
+- Ética y sesgo (RNF-09): se midió el desempeño por clase, tamaño y posición (sección 8 y [ANALISIS_SESGO_ETICA.md](ANALISIS_SESGO_ETICA.md)). El sesgo demográfico y el balance del dataset de entrenamiento no se pueden auditar con los datos disponibles.
 
 ## 6. Solicitudes a VIDEO
 Ver [SOLICITUDES_A_VIDEO.md](SOLICITUDES_A_VIDEO.md): `frame_id`/`timestamp`/`fps`, lectura de archivo de video, audio en `.wav`, carga diferida del modelo y limpieza de `config.py`.
@@ -131,3 +132,30 @@ Cómo leerlo:
 - **Limitaciones medidas en las pruebas sintéticas.** (1) ORB ignora los puntos a menos de 31 px del borde; un recorte de 120 px quedaba con 4 puntos y no se podía localizar nada. Con `borde = 15` queda con ~50. (2) RANSAC aceptaba homografías degeneradas (una caja de 19×58 px con 10 inliers); se descartan si el cuadrilátero no es convexo o su área está fuera de 0.25–4× la de la plantilla. (3) Reducir la imagen borra el detalle fino: en la escena sintética ORB localiza con ampliación y reducción 0.9×, pero no con 0.8×; en los frames reales sí llega a 0.7× porque tienen más textura.
 - Reconocimiento básico de patrones aquí significa "encontrar un recorte conocido"; no clasifica objetos. Falta usarlo dentro del pipeline (hoy no entra: `pipeline.py` no cambió).
 - 11 recortes de un solo video: sirven de comparación, no para generalizar.
+
+## 8. S15 — Tiempo real y sesgo por condición
+**FPS reales** (`python -m imagen.ejecutar_rendimiento --video datos/padang.webm --salida salidas/rendimiento --cada-n 30`, 21 frames, CPU de la PC de desarrollo con Windows, sin GPU). Modo producción: una sola pasada de YOLO por frame. Tiempo real = al menos 15 FPS (`config.FPS_TIEMPO_REAL`).
+
+| Configuración | ms/frame | FPS | Tiempo real | Detecciones de 960 px conservadas |
+|---|---|---|---|---|
+| Completo, 960 px | 113.7 | 8.8 | no | 246/292 (84 %) |
+| Completo, 640 px | 64.2 | **15.6** | sí | 214/292 (73 %) |
+| Solo mejora + detección, 640 px | 44.0 | 22.8 | sí | 214/292 (73 %) |
+| Solo mejora + detección, 480 px | 39.9 | 25.1 | sí | 174/292 (60 %) |
+
+Dónde se va el tiempo a 960 px: características 51 ms (ORB y Harris), detector de VIDEO 33 ms, CLAHE 21 ms; el resto suma menos de 9 ms. Hallazgos:
+- **El detector cuesta ~33 ms con cualquier ancho** (YOLO reescala a 640 internamente). Achicar el frame no lo acelera; ahorra en CLAHE y en características.
+- La columna de detecciones conservadas se compara contra el frame original a 960 px; ya a 960 px la mejora cambia algunas cajas (84 %), así que achicar a 640 cuesta unos 11 puntos más y a 480 unos 24.
+- La cifra anterior de ~710 ms/frame correspondía al modo de evaluación (4 pasadas de YOLO, referencia limpia y métricas), no al modo producción.
+- En Render o con otra CPU los FPS serán distintos; hay que volver a medir ahí. Con la cadena integrada (`/api/integrado/analizar`) hay dos pasadas de YOLO por imagen.
+- MobileNet-SSD (alternativa opcional del sílabo) no se probó; YOLO alcanza.
+
+**Sesgo por condición** (`... --cada-n 15 --sesgo --luz 0.15`, 42 frames, luz al 15 %). Detecciones del frame limpio que reaparecen sin y con la mejora:
+
+| Criterio | Brecha sin mejora | Brecha con mejora | Detalle |
+|---|---|---|---|
+| Clase | 0.24 | **0.47** | persona 0.36 → 0.64, mochila 0.12 → 0.16 |
+| Tamaño | 0.53 | 0.44 | grande 0.70 → 0.90, pequeño 0.17 → 0.46 |
+| Posición | 0.22 | 0.18 | centro 0.46 → 0.68, borde 0.24 → 0.50 |
+
+Hallazgo principal: la mejora ayuda mucho a las personas y casi nada a las mochilas, así que la brecha entre clases empeora. Análisis completo, límites (referencia = detecciones de VIDEO, un solo video, sin etiquetas demográficas) y uso responsable en [ANALISIS_SESGO_ETICA.md](ANALISIS_SESGO_ETICA.md).

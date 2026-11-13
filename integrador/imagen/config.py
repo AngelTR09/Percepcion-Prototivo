@@ -66,3 +66,19 @@ SOBEL = {"ksize": 3, "umbral_relativo": 0.2, "tolerancia_px": 1}  # borde = magn
 ORB_EMPAREJAR = {"puntos": 1000, "borde": 15, "ratio": 0.75, "min_inliers": 8, "ransac_px": 5.0,
                  "area_relativa": (0.25, 4.0)}  # área hallada / área de la plantilla: fuera de este rango se descarta  # borde: franja sin detección (15 en vez de 31 para recortes chicos); ratio de Lowe; homografía RANSAC
 PLANTILLA_UMBRAL = 0.6  # correlación normalizada mínima para aceptar matchTemplate
+
+# Rendimiento y tiempo real (S15)
+FPS_TIEMPO_REAL = 15.0                       # umbral usado para decir "tiempo real" (video de aula, no deportes)
+CONFIGS_RENDIMIENTO = [                      # (nombre, ancho de proceso, ¿segmentar y extraer características?)
+    {"nombre": "completo_960", "ancho": 960, "analisis": True},
+    {"nombre": "completo_640", "ancho": 640, "analisis": True},
+    {"nombre": "solo_mejora_640", "ancho": 640, "analisis": False},
+    {"nombre": "solo_mejora_480", "ancho": 480, "analisis": False},
+]
+
+# Análisis de sesgo por condición (S15, RNF-09)
+SESGO = {
+    "tamano_cortes": (0.01, 0.05),           # fracción del área del frame que ocupa la caja: <1 % pequeño, <5 % mediano, resto grande
+    "region_central": (0.25, 0.75),          # el centro de la caja dentro de este rango en x e y = "centro"; si no, "borde"
+    "min_por_grupo": 10,                     # grupos con menos referencias no entran a la brecha (ruido estadístico)
+}
