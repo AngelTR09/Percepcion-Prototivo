@@ -42,3 +42,15 @@ EXTENSIONES_IMAGEN = (".jpg", ".jpeg", ".png", ".bmp")
 EXTENSIONES_VIDEO = (".mp4", ".avi", ".mov", ".webm", ".mkv")
 PIXELES_RECORTE_PEQUENO = 300_000   # recortes y capturas chicas usan NLM (más fuerte, aún rápido)
 NLM_FUERZA = 12
+
+# Transformaciones geométricas (S04): se usan como aumento de datos para medir la robustez del detector de VIDEO
+TRANSFORMACIONES = [
+    {"nombre": "rotar_+10", "tipo": "rotar", "grados": 10.0},
+    {"nombre": "rotar_-10", "tipo": "rotar", "grados": -10.0},
+    {"nombre": "rotar_+25", "tipo": "rotar", "grados": 25.0},
+    {"nombre": "escalar_0.7", "tipo": "escalar", "factor": 0.7},
+    {"nombre": "escalar_1.3", "tipo": "escalar", "factor": 1.3},
+    {"nombre": "trasladar_10%", "tipo": "trasladar", "dx": 0.10, "dy": 0.05},  # fracción del ancho y del alto
+    {"nombre": "voltear_horizontal", "tipo": "voltear"},
+]
+VISIBLE_MINIMO = 0.5   # un objeto cuenta como referencia si queda al menos esta fracción de su caja dentro del encuadre
