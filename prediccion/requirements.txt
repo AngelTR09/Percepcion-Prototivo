@@ -1,0 +1,2 @@
+# Entrada para servicios que instalan dependencias desde la raíz.
+-r backend/requirements.txt

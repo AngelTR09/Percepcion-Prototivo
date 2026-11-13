@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadena VIDEO, IMAGEN y PREDICCION</title>
+<style>
+  :root { --fondo:#f6f7f9; --texto:#1b2430; --tarjeta:#fff; --borde:#d9dee5; --acento:#1f6feb; }
+  @media (prefers-color-scheme: dark) { :root { --fondo:#12161c; --texto:#e6eaf0; --tarjeta:#1b212a; --borde:#2d3643; --acento:#5aa0ff; } }
+  body { margin:0; background:var(--fondo); color:var(--texto); font:15px/1.5 system-ui, sans-serif; }
+  main { max-width:960px; margin:0 auto; padding:24px 16px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; } p.sub { margin:0 0 20px; opacity:.75; }
+  .tarjeta { background:var(--tarjeta); border:1px solid var(--borde); border-radius:10px; padding:16px; margin-bottom:16px; }
+  button { background:var(--acento); color:#fff; border:0; border-radius:8px; padding:10px 16px; font-size:15px; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:wait; }
+  img { max-width:100%; border-radius:8px; }
+  pre { overflow:auto; background:var(--fondo); padding:12px; border-radius:8px; font-size:13px; }
+  .fila { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
+  .error { color:#c0392b; }
+</style>
+</head>
+<body>
+<main>
+  <h1>VIDEO, IMAGEN y PREDICCION</h1>
+  <p class="sub">Sube una imagen del aula: VIDEO detecta, IMAGEN mejora y verifica, PREDICCION evalua. Prototipo academico: la salida es evidencia para revision humana.</p>
+  <div class="tarjeta">
+    <input type="file" id="archivo" accept="image/*">
+    <label><input type="text" id="permitidos" placeholder="objetos permitidos, ej. libro,laptop" size="32"></label>
+    <button id="enviar">Analizar</button>
+    <span id="estado"></span>
+  </div>
+  <div class="fila" id="vista" hidden>
+    <div class="tarjeta"><strong>Frame mejorado por IMAGEN</strong><br><img id="mejorada" alt="Frame mejorado"></div>
+    <div class="tarjeta"><strong>Resumen</strong><pre id="resumen"></pre></div>
+  </div>
+  <div class="tarjeta" id="detalle" hidden><strong>Respuesta de PREDICCION</strong><pre id="prediccion"></pre></div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+function leer(archivo) {
+  return new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = mal; r.readAsDataURL(archivo); });
+}
+$("enviar").onclick = async () => {
+  const archivo = $("archivo").files[0];
+  if (!archivo) { $("estado").textContent = "Elige una imagen."; return; }
+  $("enviar").disabled = true; $("estado").className = ""; $("estado").textContent = "Procesando...";
+  try {
+    const permitidos = $("permitidos").value.split(",").map(s => s.trim()).filter(Boolean);
+    const r = await fetch("/api/integrado/analizar", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({imagen_b64: await leer(archivo), objetos_permitidos: permitidos, devolver_imagen: true})
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || d.estado || r.status);
+    $("mejorada").src = "data:image/jpeg;base64," + d.imagen.mejorada_b64;
+    $("resumen").textContent = JSON.stringify({
+      video_detecciones: d.video.detecciones.map(x => x.clase + " " + x.confianza.toFixed(2)),
+      imagen_objetos: d.imagen.objetos_verificados.map(x => x.clase + " (" + x.estado + ")"),
+      calidad: d.imagen.calidad, tiempo_imagen_ms: d.imagen.tiempo_ms
+    }, null, 2);
+    $("prediccion").textContent = JSON.stringify(d.prediccion, null, 2);
+    $("vista").hidden = false; $("detalle").hidden = false; $("estado").textContent = "Listo.";
+  } catch (e) {
+    $("estado").className = "error"; $("estado").textContent = "Error: " + e.message;
+  } finally { $("enviar").disabled = false; }
+};
+</script>
+</body>
+</html>

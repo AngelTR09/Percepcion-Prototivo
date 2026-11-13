@@ -1,0 +1,2 @@
+# Detector de VIDEO (YOLO best.pt). En Docker, torch se instala antes desde el indice CPU.
+ultralytics==8.4.162

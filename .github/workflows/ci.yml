@@ -1,0 +1,72 @@
+name: CI
+
+# Los cambios llegan a main solo por Pull Request, con estas dos comprobaciones en verde.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    name: pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-video.txt
+            requirements-dev.txt
+      - name: Instalar (torch CPU + dependencias)
+        run: |
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-dev.txt -r requirements-video.txt
+      - name: Ensamblaje (puente, servidor, cadena completa)
+        run: python -m pytest tests -q
+      - name: VIDEO + IMAGEN (integrador)
+        working-directory: integrador
+        run: python -m pytest tests -q
+      - name: PREDICCION
+        working-directory: prediccion
+        run: python -m pytest tests -q
+
+  docker:
+    name: docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir la imagen (la misma que usa Render)
+        run: docker build -t supervision .
+      - name: Arrancar y comprobar
+        run: |
+          docker run -d --name s -p 8000:8000 -e PORT=8000 supervision
+          for i in $(seq 1 40); do curl -fsS http://localhost:8000/salud && break || sleep 3; done
+          curl -fsS http://localhost:8000/salud
+          curl -fsS http://localhost:8000/api/integrado/estado
+          curl -fsS http://localhost:8000/api/salud
+          curl -fsS -o /dev/null http://localhost:8000/integrado
+      - name: Cadena real con el detector de VIDEO dentro del contenedor
+        run: |
+          python3 - <<'PY' > cuerpo.json
+          import base64, json, urllib.request
+          # Imagen de prueba incluida en la imagen Docker no existe: se genera un JPEG minimo sin dependencias.
+          import zlib, struct
+          def png(w=64, h=64):
+              raw = b"".join(b"\x00" + bytes([90, 120, 160]) * w for _ in range(h))
+              def chunk(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+              return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
+          print(json.dumps({"imagen_b64": base64.b64encode(png()).decode(), "devolver_imagen": True}))
+          PY
+          curl -fsS -X POST -H 'Content-Type: application/json' --data @cuerpo.json http://localhost:8000/api/integrado/analizar | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['prediccion']['integracion']['fuentes_recibidas'] is not None; print('cadena ok', d['imagen']['tiempo_ms'], 'ms')"
+      - name: Registros del contenedor
+        if: failure()
+        run: docker logs s
