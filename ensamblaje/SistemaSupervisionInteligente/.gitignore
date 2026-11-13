@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+.vscode/
+runs/
+*.cache
+
+# Datasets
+dataset/
+dataset_filtrado/
+
+# Fotos de las alertas y capturas (en cualquier carpeta)
+alertas/
+capturas/
+alertas_anteriores/
+
+# Entorno y resultados generados
+.venv/
+resultados/
+imagen/calibracion/*.csv
+.streamlit/secrets.toml
+
+# Herramientas descargadas (cloudflared)
+herramientas/
