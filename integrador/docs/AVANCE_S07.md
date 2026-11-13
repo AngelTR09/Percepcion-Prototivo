@@ -25,6 +25,7 @@ video (archivo) ─► adaptador_video ─► degradar* ─► gamma ─► filt
 | S06 | Sobel comparado con Canny; ORB con descriptores y `BFMatcher` + homografía RANSAC; `matchTemplate` como alternativa | `caracteristicas.py`, `ejecutar_patrones.py` |
 | S15 | FPS por etapa y por configuración; análisis de sesgo de desempeño por clase, tamaño y posición; ética y uso responsable | `rendimiento.py`, `sesgo.py`, `ejecutar_rendimiento.py`, `docs/ANALISIS_SESGO_ETICA.md` |
 | S12 | MLP con Keras (Flatten + Dense relu + softmax), parada temprana, matriz de confusión, precisión/recall/F1, línea base mayoritaria | `mlp.py`, `ejecutar_mlp.py`, `ejecutar_recortes.py` |
+| S13 | CNN (Conv + MaxPool) con aumento geométrico; transfer learning con MobileNetV2 (cabeza y afinado); robustez a rotaciones de S04 | `cnn.py`, `ejecutar_cnn.py` |
 
 ## 4. Resultados
 Video: `padang.webm` (aula, 1080p, 10 s; CC BY-SA 4.0, Wikimedia Commons). 11 frames (1 de cada 60). Detecciones de VIDEO que reaparecen (clase igual, IoU ≥ 0.5) respecto al frame limpio, de 154:
@@ -178,3 +179,34 @@ Entorno aparte (`requirements-lab.txt`: TensorFlow 2.21.0, Keras 3.15.1); no ent
 - La exactitud sola engaña: una línea base que siempre dice "persona" ya acierta 0.92.
 - **Límites.** (1) Las etiquetas son las clases que dio VIDEO, no anotaciones manuales: el MLP aprende a imitar a VIDEO. (2) Persona y mochila se distinguen fácil por forma y tamaño. (3) Un solo video: las mismas personas y la misma escena están en entrenamiento y prueba, así que 0.995 no se generalizará a otra aula. (4) Solo 68 mochilas en prueba: un error cambia el recall en 1.5 puntos.
 Pendiente: S13 (CNN y transfer learning) sobre estos mismos recortes y Fashion-MNIST, y S14 (hiperparámetros y regularización con tabla comparativa).
+
+## 10. S13 — CNN y transfer learning
+Mismo entorno de laboratorio que S12. CNN: `[aumento] → (Conv3×3 relu → MaxPool 2×2) × 2 (32 y 64 filtros) → Flatten → Dense(64) → Dense(n, softmax)`. El aumento (rotación ±0.07 vuelta ≈ ±25°, traslación y zoom 10 %) equivale a las transformaciones de S04 y solo actúa al entrenar. Transfer learning: MobileNetV2 con pesos de ImageNet, congelada, más una cabeza nueva (pooling global, dropout 0.2, Dense); después se afinan sus últimas 30 capas con tasa 1e-5 (BatchNorm sigue congelada). Parámetros en `config.CNN` y `config.TRANSFER`.
+
+`python -m imagen.ejecutar_cnn --salida salidas/cnn --fashion` · `--recortes32 salidas/recortes/recortes.npz --semillas 5` · `--recortes96 salidas/recortes96/recortes.npz` (los recortes de 96 px se generan con `ejecutar_recortes --lado 96`).
+
+**Fashion-MNIST reducido (MLP de S12 contra CNN, una semilla cada uno):**
+
+| Modelo | Parámetros | Exactitud | F1 camisa | F1 jersey | F1 abrigo |
+|---|---|---|---|---|---|
+| MLP | 109 386 | 0.851 | 0.62 | 0.73 | 0.73 |
+| CNN | 220 234 | **0.876** | 0.69 | 0.79 | 0.76 |
+
+La CNN gana 2.5 puntos y mejora justo las prendas de torso que el MLP confundía (la convolución capta la forma local), al doble de parámetros. Con una semilla, el margen no está medido con su variabilidad.
+
+**Recortes de VIDEO, 5 semillas (media ± desviación; 851 recortes de prueba, 68 mochilas; recall = el de mochila).** La prueba también se rota con la transformación de S04.
+
+| Modelo | Exactitud 0° | Recall 0° | Exactitud 25° | Recall 25° |
+|---|---|---|---|---|
+| MLP | 0.992 ± 0.004 | 0.932 ± 0.007 | 0.920 ± 0.000 | **0.000** |
+| CNN sin aumento | 0.983 ± 0.019 | 0.941 ± 0.013 | 0.941 ± 0.028 | 0.268 ± 0.347 |
+| CNN con aumento | **0.997 ± 0.003** | **0.982 ± 0.014** | 0.981 ± 0.030 | 0.759 ± 0.372 |
+
+**Transfer learning (96 px, una semilla):** cabeza entrenada: exactitud 0.999 con solo **2 562 parámetros entrenables** (2.26 M congelados), recall de mochila 0.985, y a 25° exactitud 0.988 y recall 0.912. Afinando las últimas capas (1.5 M entrenables) no mejora en prueba (0.999) y a 25° baja (0.979, recall 0.853). Entrena en 43 s contra 2–4 s de la CNN pequeña.
+
+Lectura:
+- **El MLP no sirve fuera de la orientación de entrenamiento:** acierta 0.99 sin rotar y con 10° ya no detecta mochilas (recall 0.012). La convolución más el aumento es lo que da robustez; el aumento mejora recall de mochila de 0.941 a 0.982 sin rotar y de 0.268 a 0.759 a 25°.
+- **La varianza entre semillas es enorme a 25°** (± 0.35 en recall). Una sola ejecución puede dar 0.15 o 0.96: la primera corrida de la CNN sin aumento dio 0.946 y la de con aumento 0.9965 a 25°, y ambas eran extremos de su distribución. Sin repetir con semillas, esta comparación habría sido ruido.
+- **Transfer learning es la opción más robusta aquí** y con casi nada que entrenar, pero se midió con una sola semilla y sin probar rotación en entrenamiento; no se debe leer como "mejor que el aumento".
+- **Límites** (los mismos de S12): etiquetas de VIDEO y no manuales, una sola escena con las mismas personas en entrenamiento y prueba, 68 mochilas en prueba (un error = 1.5 puntos), y MobileNetV2 ya vio ImageNet, que contiene personas y mochilas.
+Pendiente: S14 (hiperparámetros, regularización y tabla comparativa con intervalos).
