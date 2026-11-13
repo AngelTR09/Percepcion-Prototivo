@@ -20,7 +20,9 @@ video (archivo) ─► adaptador_video ─► degradar* ─► gamma ─► filt
 | S04 | Corrección gamma automática, CLAHE, redimensión | `mejoramiento.py` |
 | S04 | Rotación, escalamiento, traslación y volteo con `warpAffine`; robustez del detector de VIDEO | `transformaciones.py`, `ejecutar_geometricas.py` |
 | S05 | Otsu + apertura/cierre + contornos (bbox, área, perímetro, centroide) | `segmentacion.py` |
+| S05 | Umbral adaptativo (`adaptiveThreshold`) y segmentación por regiones (watershed), comparados con Otsu por IoU de máscaras | `segmentacion.py`, `ejecutar_segmentacion.py` |
 | S06 | Canny, Harris, ORB, media HSV | `caracteristicas.py` |
+| S06 | Sobel comparado con Canny; ORB con descriptores y `BFMatcher` + homografía RANSAC; `matchTemplate` como alternativa | `caracteristicas.py`, `ejecutar_patrones.py` |
 
 ## 4. Resultados
 Video: `padang.webm` (aula, 1080p, 10 s; CC BY-SA 4.0, Wikimedia Commons). 11 frames (1 de cada 60). Detecciones de VIDEO que reaparecen (clase igual, IoU ≥ 0.5) respecto al frame limpio, de 154:
@@ -81,3 +83,51 @@ Se transforma cada frame (rotación, escalamiento, traslación, volteo) y se tra
 
 Lectura: el detector de VIDEO es sensible a la rotación (cae a 0.30 con 25°) y razonablemente estable ante escala y traslación. Ni el volteo, que no cambia el contenido, llega a 1.0: parte de las detecciones son marginales (confianza baja) y aparecen o desaparecen con cualquier cambio de píxeles, así que la tasa mide la estabilidad del detector y no solo la geometría. Las cajas transformadas se verifican en `tests/test_transformaciones.py` con un detector de prueba que sí es exacto (IoU > 0.7 en todas las transformaciones).
 Pendiente (no hecho): reentrenar o afinar VIDEO con estos aumentos; esto solo mide.
+
+## 6. S05 — Umbral adaptativo y segmentación por regiones (watershed)
+`python -m imagen.ejecutar_segmentacion --video datos/padang.webm --salida salidas/segmentacion --cada-n 60` (mismos 11 frames; VIDEO detecta 14.0 objetos por frame).
+
+| Método | Objetos/frame | IoU vs Otsu | IoU vs cajas de VIDEO | ms/frame |
+|---|---|---|---|---|
+| Otsu + morfología + contornos | 7.5 | 1.000 | 0.217 | 3.9 |
+| Umbral adaptativo (bloque 101, c = 3) | 17.4 | 0.601 | **0.256** | 9.7 |
+| Watershed (semillas al 60 % de la distancia) | 14.5 | 0.512 | 0.153 | 153.0 |
+
+Cómo leerlo:
+- **La referencia es débil.** Una caja de VIDEO incluye fondo y las máscaras separan por intensidad, no por objeto; por eso todos los IoU son bajos. Sirve para comparar métodos entre sí, no como exactitud absoluta.
+- **Umbral adaptativo.** Mejora un poco a Otsu y es el único que funciona con iluminación despareja: en una escena sintética con verdad conocida (fondo que sube de 30 a 200) Otsu obtiene IoU 0.09 y el adaptativo 0.998 (`tests/test_segmentacion_regiones.py`). Con un bloque chico fragmenta (23.8 objetos por frame con bloque 51); la ventana debe ser bastante mayor que el objeto.
+- **Watershed.** Es el único que separa objetos que se tocan (los contornos de una máscara binaria los funden en uno). Su número de objetos (14.5) se acerca al de VIDEO (14.0), pero su máscara cubre menos y es 40 veces más lento que Otsu: no se usó en el pipeline.
+- **Defecto corregido en el proceso.** La primera versión calculaba las semillas con un umbral global y el IoU contra VIDEO cayó a 0.06; con el umbral por componente subió a 0.15. Los parámetros (bloque 101, c = 3, fracción 0.6) se eligieron barriendo `padang.webm`, no la imagen de prueba.
+- Con un solo video de aula y 11 frames, estos números no se generalizan a otras escenas.
+Pendiente: comparación sobre más videos, y decidir si watershed entra al pipeline (hoy no: `pipeline.py` sigue usando Otsu).
+
+## 7. S06 — Sobel, ORB completo y reconocimiento de patrones
+`python -m imagen.ejecutar_patrones --video datos/padang.webm --salida salidas/patrones --cada-n 60` (mismos 11 frames). `caracteristicas.extraer` no cambió: sigue siendo el contrato de columnas con PREDICCIÓN.
+
+**Sobel vs Canny** (promedio por frame, tolerancia de 1 px):
+
+| | Densidad de bordes | ms | Cubierto por el otro |
+|---|---|---|---|
+| Canny | 0.118 | 2.2 | 76 % de sus píxeles coinciden con un borde de Sobel |
+| Sobel (umbral 20 % de la magnitud máxima) | 0.130 | 2.6 | 99.7 % de sus píxeles coinciden con un borde de Canny |
+
+Sobel solo marca los gradientes fuertes y Canny los confirma casi todos; Canny además recupera bordes finos que Sobel deja bajo el umbral. Su costo es parecido.
+
+**Reconocimiento de patrones.** Se recorta la detección de VIDEO más segura de cada frame (11 recortes) y se busca en el mismo frame transformado con las transformaciones de S04. Acierto = IoU ≥ 0.5 con la caja transformada.
+
+| Transformación | ORB + BFMatcher + RANSAC | matchTemplate |
+|---|---|---|
+| Rotar +10° / −10° / +25° | 10/11 en las tres | 0/11 en las tres |
+| Escalar 0.7 | 10/11 | 0/11 |
+| Escalar 1.3 | 8/11 | 2/11 |
+| Trasladar 10 % | 10/11 | 11/11 |
+| Voltear horizontal | 0/11 | 0/11 |
+
+Tiempo por búsqueda: ORB 15–30 ms, matchTemplate 10 ms.
+
+Cómo leerlo:
+- `matchTemplate` solo sirve cuando el patrón no cambia de orientación ni de tamaño (traslación). ORB tolera rotación y escala, a cambio de algo más de tiempo.
+- Ninguno reconoce el patrón volteado: los descriptores ORB no son invariantes al espejo.
+- **Limitaciones medidas en las pruebas sintéticas.** (1) ORB ignora los puntos a menos de 31 px del borde; un recorte de 120 px quedaba con 4 puntos y no se podía localizar nada. Con `borde = 15` queda con ~50. (2) RANSAC aceptaba homografías degeneradas (una caja de 19×58 px con 10 inliers); se descartan si el cuadrilátero no es convexo o su área está fuera de 0.25–4× la de la plantilla. (3) Reducir la imagen borra el detalle fino: en la escena sintética ORB localiza con ampliación y reducción 0.9×, pero no con 0.8×; en los frames reales sí llega a 0.7× porque tienen más textura.
+- Reconocimiento básico de patrones aquí significa "encontrar un recorte conocido"; no clasifica objetos. Falta usarlo dentro del pipeline (hoy no entra: `pipeline.py` no cambió).
+- 11 recortes de un solo video: sirven de comparación, no para generalizar.
