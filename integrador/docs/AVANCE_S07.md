@@ -18,6 +18,7 @@ video (archivo) ─► adaptador_video ─► degradar* ─► gamma ─► filt
 | S02 | Lectura de frames, BGR↔grises/HSV | `adaptador_video.py`, `preprocesamiento.py` |
 | S03 | Filtros Media, Gaussiano, Mediana, Bilateral comparados con PSNR, SSIM y tiempo | `preprocesamiento.comparar_filtros` |
 | S04 | Corrección gamma automática, CLAHE, redimensión | `mejoramiento.py` |
+| S04 | Rotación, escalamiento, traslación y volteo con `warpAffine`; robustez del detector de VIDEO | `transformaciones.py`, `ejecutar_geometricas.py` |
 | S05 | Otsu + apertura/cierre + contornos (bbox, área, perímetro, centroide) | `segmentacion.py` |
 | S06 | Canny, Harris, ORB, media HSV | `caracteristicas.py` |
 
@@ -62,3 +63,21 @@ Ver [SOLICITUDES_A_VIDEO.md](SOLICITUDES_A_VIDEO.md): `frame_id`/`timestamp`/`fp
 - RF-12 y RF-13: filtrado en frecuencia y restauración (S09–S10).
 - RF-14: CSV listo para Scikit-learn (S11); acordar con PREDICCIÓN el contrato y quién clasifica.
 - Opcionales: CNN (S13), tiempo real (S15).
+
+## 5. S04 — Transformaciones geométricas como aumento de datos
+Se transforma cada frame (rotación, escalamiento, traslación, volteo) y se transforman también las cajas con la misma matriz afín. Se cuenta cuántas detecciones de VIDEO del frame original reaparecen (clase igual, IoU ≥ 0.5) en el frame transformado. Solo cuentan como referencia las cajas que siguen al menos 50 % dentro del encuadre. Mismos 11 frames de `padang.webm` que en la sección 4.
+
+`python -m imagen.ejecutar_geometricas --video datos/padang.webm --salida salidas/geometricas --cada-n 60`
+
+| Transformación | Referencia | Recuperadas | Tasa |
+|---|---|---|---|
+| Rotar +10° | 154 | 111 | 0.72 |
+| Rotar −10° | 154 | 88 | 0.57 |
+| Rotar +25° | 154 | 46 | 0.30 |
+| Escalar 0.7 | 154 | 128 | 0.83 |
+| Escalar 1.3 | 120 | 102 | 0.85 |
+| Trasladar 10 % / 5 % | 134 | 118 | 0.88 |
+| Voltear horizontal | 154 | 128 | 0.83 |
+
+Lectura: el detector de VIDEO es sensible a la rotación (cae a 0.30 con 25°) y razonablemente estable ante escala y traslación. Ni el volteo, que no cambia el contenido, llega a 1.0: parte de las detecciones son marginales (confianza baja) y aparecen o desaparecen con cualquier cambio de píxeles, así que la tasa mide la estabilidad del detector y no solo la geometría. Las cajas transformadas se verifican en `tests/test_transformaciones.py` con un detector de prueba que sí es exacto (IoU > 0.7 en todas las transformaciones).
+Pendiente (no hecho): reentrenar o afinar VIDEO con estos aumentos; esto solo mide.
