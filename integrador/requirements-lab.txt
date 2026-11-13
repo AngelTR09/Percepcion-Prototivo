@@ -1,0 +1,7 @@
+# Laboratorios de aprendizaje (S12-S14). Entorno APARTE del sistema: no va en el Dockerfile ni en Render.
+#   python -m venv .venv-lab && .venv-lab/bin/pip install -r requirements-lab.txt
+tensorflow==2.21.0
+keras==3.15.1
+opencv-python-headless==4.11.0.86
+pytest==9.2.0
+scikit-image==0.26.0

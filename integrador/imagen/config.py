@@ -82,3 +82,9 @@ SESGO = {
     "region_central": (0.25, 0.75),          # el centro de la caja dentro de este rango en x e y = "centro"; si no, "borde"
     "min_por_grupo": 10,                     # grupos con menos referencias no entran a la brecha (ruido estadístico)
 }
+
+# MLP con Keras (S12)
+MLP = {"capas": (128, 64), "dropout": 0.0, "l2": 0.0, "tasa_aprendizaje": 1e-3,
+       "epocas": 30, "lote": 64, "validacion": 0.2, "paciencia": 4, "semilla": 7}
+FASHION_REDUCIDO = {"entrenamiento": 10000, "prueba": 2000, "semilla": 7}   # el sílabo pide un dataset reducido
+RECORTES = {"lado": 32, "cada_n": 10, "min_lado_px": 24, "clases": ("persona", "mochila"), "fraccion_prueba": 0.3}

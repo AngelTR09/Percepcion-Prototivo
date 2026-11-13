@@ -24,6 +24,7 @@ video (archivo) ─► adaptador_video ─► degradar* ─► gamma ─► filt
 | S06 | Canny, Harris, ORB, media HSV | `caracteristicas.py` |
 | S06 | Sobel comparado con Canny; ORB con descriptores y `BFMatcher` + homografía RANSAC; `matchTemplate` como alternativa | `caracteristicas.py`, `ejecutar_patrones.py` |
 | S15 | FPS por etapa y por configuración; análisis de sesgo de desempeño por clase, tamaño y posición; ética y uso responsable | `rendimiento.py`, `sesgo.py`, `ejecutar_rendimiento.py`, `docs/ANALISIS_SESGO_ETICA.md` |
+| S12 | MLP con Keras (Flatten + Dense relu + softmax), parada temprana, matriz de confusión, precisión/recall/F1, línea base mayoritaria | `mlp.py`, `ejecutar_mlp.py`, `ejecutar_recortes.py` |
 
 ## 4. Resultados
 Video: `padang.webm` (aula, 1080p, 10 s; CC BY-SA 4.0, Wikimedia Commons). 11 frames (1 de cada 60). Detecciones de VIDEO que reaparecen (clase igual, IoU ≥ 0.5) respecto al frame limpio, de 154:
@@ -159,3 +160,21 @@ Dónde se va el tiempo a 960 px: características 51 ms (ORB y Harris), detector
 | Posición | 0.22 | 0.18 | centro 0.46 → 0.68, borde 0.24 → 0.50 |
 
 Hallazgo principal: la mejora ayuda mucho a las personas y casi nada a las mochilas, así que la brecha entre clases empeora. Análisis completo, límites (referencia = detecciones de VIDEO, un solo video, sin etiquetas demográficas) y uso responsable en [ANALISIS_SESGO_ETICA.md](ANALISIS_SESGO_ETICA.md).
+
+## 9. S12 — Perceptrón multicapa con Keras
+Entorno aparte (`requirements-lab.txt`: TensorFlow 2.21.0, Keras 3.15.1); no entra al Dockerfile ni a Render, y las pruebas de Keras se omiten si no está instalado. Arquitectura: `Flatten → Dense(128, relu) → Dense(64, relu) → Dense(n, softmax)`, Adam (tasa 1e-3), lote 64, 20 % de validación y parada temprana con paciencia 4 (parámetros en `config.MLP`, semilla fija).
+
+**Experimento A: Fashion-MNIST reducido** (10 000 de entrenamiento, 2 000 de prueba; `python -m imagen.ejecutar_mlp --salida salidas/mlp`). Exactitud en prueba **0.851** (azar: 0.10); paró en la época 9; 4 s de entrenamiento. Por clase (F1): pantalón 0.96, bolso 0.96, sandalia 0.94, botín 0.94, zapatilla 0.93, camiseta 0.85, vestido 0.83, abrigo 0.73, jersey 0.73, **camisa 0.62**. Se confunden las prendas de torso entre sí; un MLP ve cada píxel por separado y no capta la forma local, que es lo que la CNN de S13 debería mejorar.
+
+**Experimento B: recortes de VIDEO** (2 902 recortes de 32×32 de `padang.webm`: 2 573 personas y 329 mochilas, 1 de cada 3 frames; `ejecutar_recortes` y luego `ejecutar_mlp --recortes`). División por tiempo: los últimos 30 % de los frames para prueba (851 recortes: 783 y 68), para que frames casi idénticos no caigan a ambos lados.
+
+| Modelo | Exactitud | Recall mochila | Precisión mochila | F1 mochila |
+|---|---|---|---|---|
+| Línea base (siempre "persona") | 0.920 | 0.00 | — | — |
+| MLP sin pesos | **0.995** | 0.941 | 1.000 | 0.970 |
+| MLP con pesos de clase | 0.979 | **0.971** | 0.805 | 0.880 |
+
+- Compensar el desbalance (pesos inversos a la frecuencia) sube el recall de mochila (64 → 66 de 68) pero baja la precisión a 0.805: aparecen falsas mochilas. Es un compromiso, no una mejora; qué conviene depende del costo de una falsa alerta.
+- La exactitud sola engaña: una línea base que siempre dice "persona" ya acierta 0.92.
+- **Límites.** (1) Las etiquetas son las clases que dio VIDEO, no anotaciones manuales: el MLP aprende a imitar a VIDEO. (2) Persona y mochila se distinguen fácil por forma y tamaño. (3) Un solo video: las mismas personas y la misma escena están en entrenamiento y prueba, así que 0.995 no se generalizará a otra aula. (4) Solo 68 mochilas en prueba: un error cambia el recall en 1.5 puntos.
+Pendiente: S13 (CNN y transfer learning) sobre estos mismos recortes y Fashion-MNIST, y S14 (hiperparámetros y regularización con tabla comparativa).
