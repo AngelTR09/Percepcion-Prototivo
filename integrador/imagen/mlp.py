@@ -47,17 +47,18 @@ def construir_mlp(forma_entrada, n_clases, capas=None, dropout=None, l2=None, ta
     return modelo
 
 
-def entrenar(modelo, x, y, epocas=None, lote=None, validacion=None, paciencia=None, pesos_clase=None):
+def entrenar(modelo, x, y, epocas=None, lote=None, validacion=None, paciencia=None, pesos_clase=None, parada_temprana=True):
     """Entrena con una fracción de validación y parada temprana (restaura los mejores pesos).
     Devuelve {loss, val_loss, accuracy, val_accuracy} por época."""
     p = config.MLP
     k = _keras()
     parada = k.callbacks.EarlyStopping(monitor="val_loss", patience=p["paciencia"] if paciencia is None else paciencia,
                                        restore_best_weights=True)
+    # parada_temprana=False entrena todas las épocas (sirve para medir qué aporta la parada temprana)
     historia = modelo.fit(x, y, epochs=p["epocas"] if epocas is None else epocas,
                           batch_size=p["lote"] if lote is None else lote,
                           validation_split=p["validacion"] if validacion is None else validacion,
-                          callbacks=[parada], class_weight=pesos_clase, verbose=0, shuffle=True)
+                          callbacks=[parada] if parada_temprana else [], class_weight=pesos_clase, verbose=0, shuffle=True)
     return {k_: [float(v) for v in vs] for k_, vs in historia.history.items()}
 
 
