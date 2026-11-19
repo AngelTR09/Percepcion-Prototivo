@@ -39,12 +39,29 @@ pip install -r requirements-dev.txt -r requirements-video.txt
 uvicorn servidor:app --port 8000
 ```
 
-## Desplegar en Render
+## Desplegar gratis en la nube
 
-New + > **Blueprint** y elegir este repositorio: usa `render.yaml` (Docker, health check `/salud`, `$PORT` automatico).
-Memoria medida: **~590 MB con el detector de VIDEO cargado**, por eso el Blueprint pide `plan: standard`.
-En el plan `free` (512 MB) pon `INTEGRADO_DETECTOR=off`: PREDICCION y el panel funcionan, la cadena responde 503.
-El detector se carga en la primera peticion, no al arrancar.
+Memoria medida dentro del contenedor Linux con tope duro de 512 MiB: **384 MiB (75 %) tras 10 imagenes seguidas con la cadena completa, sin OOM**. (Un proceso suelto en Windows llega a ~590 MB; el contenedor usa menos.)
+
+| Opcion | Costo | RAM | Cadena VIDEO -> IMAGEN -> PREDICCION |
+|---|---|---|---|
+| **Hugging Face Spaces** (Docker) | gratis | 16 GB, 2 vCPU | **completa, con holgura** |
+| Render, plan `free` (`render.yaml`) | gratis | 512 MB, CPU compartida | completa, pero justa de memoria y lenta al despertar |
+| Render, plan `standard` | de pago | 2 GB | completa |
+
+**Hugging Face Spaces (recomendado):**
+```bash
+pip install huggingface_hub
+hf auth login                                                    # una vez; token de escritura creado en huggingface.co/settings/tokens
+python deploy/publicar_huggingface.py --space TU_USUARIO/supervision-inteligente
+```
+Sube solo lo commiteado y lo que necesita el Dockerfile (unos 43 MB). La primera construccion tarda varios minutos; luego abre `https://TU_USUARIO-supervision-inteligente.hf.space/integrado`.
+Es publico salvo que pases `--privado`; no tiene inicio de sesion propio, usa solo datos ficticios. Un Space gratuito se duerme tras un tiempo sin visitas y despierta al entrar. Para apagarlo del todo: Settings > Delete this Space.
+Para probar la imagen en local antes de subir: `python deploy/publicar_huggingface.py --preparar salidas/space` y `docker build -t space-prueba salidas/space`.
+
+**Render gratis:** New + > **Blueprint** y elegir este repositorio (`render.yaml` ya esta en plan `free`).
+El detector se carga en la primera peticion, no al arrancar; con CPU compartida esa primera peticion puede tardar decenas de segundos, y el servicio se duerme tras ~15 min sin visitas.
+Si se reinicia por memoria: variable `INTEGRADO_DETECTOR=off` (la cadena responde 503; el panel y PREDICCION siguen).
 
 Variables: `INTEGRADO_DETECTOR` (`video`|`off`), `FRONTEND_ORIGINS`, y las `AULAPREDICT_*` de PREDICCION (ver `prediccion/.env.example`).
 
