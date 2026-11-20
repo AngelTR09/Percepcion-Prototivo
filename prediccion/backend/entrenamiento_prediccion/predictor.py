@@ -103,10 +103,27 @@ def _obtener_face_cascade(experimental=False):
         raise RuntimeError(f"No se pudo cargar la cascada facial {variante}")
     return detector
 
+@lru_cache(maxsize=4)
+def _cascada_facial(variante):
+    detector = cv2.CascadeClassifier(str(Path(cv2.data.haarcascades) / f"haarcascade_frontalface_{variante}.xml"))
+    if detector.empty():
+        raise RuntimeError(f"No se pudo cargar la cascada facial {variante}")
+    return detector
+
+
 def detectar_rostros(gris, tamano_minimo, *, experimental=False):
     with _LOCK_HAAR:
-        return _obtener_face_cascade(experimental).detectMultiScale(
+        caras = _obtener_face_cascade(experimental).detectMultiScale(
             gris, scaleFactor=1.15, minNeighbors=4, minSize=tamano_minimo)
+        if len(caras) == 0 and experimental:
+            # La cascada "alt" falla con rostros ligeramente inclinados o girados. Solo si no encontro nada se
+            # prueban las otras cascadas frontales de OpenCV (mas tolerantes a la inclinacion), con los mismos parametros.
+            for variante in ("alt2", "default"):
+                caras = _cascada_facial(variante).detectMultiScale(
+                    gris, scaleFactor=1.15, minNeighbors=4, minSize=tamano_minimo)
+                if len(caras):
+                    break
+        return caras
 
 def _tensor_a_numpy(t: Any) -> np.ndarray:
     if hasattr(t, "cpu"):
