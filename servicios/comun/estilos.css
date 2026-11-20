@@ -24,6 +24,7 @@ body { margin: 0; background: var(--fondo); color: var(--cuerpo); font: 14px/1.5
 .chip.aviso { background: var(--azul-claro); border-color: var(--borde-azul); color: #1D4ED8; }
 .umbral { font-size: 13px; color: var(--tenue); display: flex; align-items: center; gap: 6px; }
 .umbral input { width: 62px; padding: 4px 6px; border: 1px solid var(--borde); border-radius: 6px; }
+.umbral select { padding: 4px 6px; border: 1px solid var(--borde); border-radius: 6px; font: inherit; background: #fff; }
 .boton { background: var(--azul); color: #fff; border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 600; cursor: pointer; font: inherit; }
 .boton.claro { background: #fff; color: var(--texto); border: 1px solid var(--borde); }
 .acciones { display: flex; gap: 10px; margin: 12px 0 0; }

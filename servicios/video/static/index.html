@@ -2,9 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
+  <link rel="icon" href="data:,">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Servicio VIDEO · Detección de objetos en vivo</title>
   <link rel="stylesheet" href="/estilos.css">
+  <script src="/deteccion_local.js" defer></script>
   <script src="/vista_video.js" defer></script>
 </head>
 <body>
@@ -19,10 +21,16 @@
         <div class="barra">
           <div class="grupo"><h2>🎥 Cámara con detección de VIDEO</h2>
             <span id="v-estado" class="chip"><span id="v-estado-texto" role="status">Cámara detenida</span></span>
-            <span id="v-imagen-estado" class="chip">🖼️ IMAGEN: sin hallazgos</span></div>
-          <label class="umbral" for="umbral-video">Umbral para pasar a IMAGEN
-            <input id="umbral-video" type="number" min="15" max="95" step="5" value="50"> %
-          </label>
+            <span id="v-imagen-estado" class="chip">🖼️ IMAGEN: sin hallazgos</span>
+            <span id="v-modo" class="chip">Detección: se carga al encender la cámara</span></div>
+          <div class="grupo">
+            <label class="umbral" for="calidad-video">Detección
+              <select id="calidad-video"><option value="416" selected>Rápida (416)</option><option value="512">Equilibrada (512)</option><option value="640">Precisa (640)</option></select>
+            </label>
+            <label class="umbral" for="umbral-video">Umbral para pasar a IMAGEN
+              <input id="umbral-video" type="number" min="15" max="95" step="5" value="50"> %
+            </label>
+          </div>
         </div>
         <div class="visor">
           <video id="v-video" playsinline autoplay muted></video>

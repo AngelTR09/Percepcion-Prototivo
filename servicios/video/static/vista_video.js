@@ -12,7 +12,7 @@
   const TOLERANCIA_MS = 1000;   // un parpadeo del detector no reinicia el contador
 
   const $ = (id) => document.getElementById(id);
-  let flujo = null, ultimas = null, corriendo = false, entregando = false;
+  let flujo = null, ultimas = null, corriendo = false, entregando = false, modoLocal = false, fps = 0;
   let inicio = {}, ultimaVista = {}, alertada = {}, ultimaEntrega = 0;
   const lienzoEnvio = document.createElement("canvas");
 
@@ -34,12 +34,24 @@
     $("v-iniciar").hidden = true; $("v-detener").hidden = false;
     estado("Detectando…", true);
     corriendo = true; ciclo();
+    activarLocal();
+  }
+
+  // Detector en el navegador: los recuadros siguen la imagen en vivo sin depender de la CPU del servidor.
+  function modo(texto, ok) { const c = $("v-modo"); c.textContent = texto; c.className = "chip " + (ok ? "ok" : "aviso"); }
+
+  async function activarLocal() {
+    if (modoLocal || typeof DeteccionLocal === "undefined") return;
+    modo("⏳ Cargando detector del navegador (12 MB)…", false);
+    DeteccionLocal.fijarLado(Number($("calidad-video")?.value) || 416);
+    modoLocal = await DeteccionLocal.cargar();
+    modo(modoLocal ? "⚡ Detección en tu navegador" : "🖥️ Detección en el servidor (el navegador no pudo cargar el detector)", modoLocal);
   }
 
   function detener() {
     corriendo = false;
     if (flujo) flujo.getTracks().forEach((t) => t.stop());
-    flujo = null; ultimas = null; inicio = {}; ultimaVista = {}; alertada = {};
+    flujo = null; ultimas = null; inicio = {}; ultimaVista = {}; alertada = {}; fps = 0;
     const v = $("v-video"); v.srcObject = null; v.classList.remove("active");
     $("v-placeholder").style.display = ""; $("v-iniciar").hidden = false; $("v-detener").hidden = true;
     estado("Cámara detenida", false); dibujar(); lista();
@@ -50,6 +62,16 @@
     if (!corriendo) return;
     const v = $("v-video");
     let espera = PAUSA_MS;
+    if (modoLocal && v.readyState >= 2 && v.videoWidth > 0 && !v.paused) {
+      try {
+        ultimas = await DeteccionLocal.detectar(v);
+        fps = fps ? fps * 0.8 + (1000 / Math.max(1, ultimas.latencia_ms)) * 0.2 : 1000 / Math.max(1, ultimas.latencia_ms);
+        $("v-modo").textContent = `⚡ Detección en tu navegador · ${fps.toFixed(1)} fps`;
+        if (corriendo) { estado("Detectando…", true); procesar(); }
+      } catch (e) { modoLocal = false; modo("🖥️ Detección en el servidor (falló la del navegador)", false); }
+      if (corriendo) { dibujar(); setTimeout(ciclo, 0); }
+      return;
+    }
     if (v.readyState >= 2 && v.videoWidth > 0 && !v.paused) {
       try {
         const ancho = Math.min(ANCHO_ENVIO, v.videoWidth);
@@ -212,6 +234,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     $("v-iniciar").addEventListener("click", iniciar);
     $("v-detener").addEventListener("click", detener);
+    $("calidad-video").addEventListener("change", () => { if (typeof DeteccionLocal !== "undefined") DeteccionLocal.fijarLado(Number($("calidad-video").value)); fps = 0; });
     window.addEventListener("resize", dibujar);
     fetch("/api/estado").then((r) => r.json()).then((d) => { $("estado-detector-video").textContent = d.detector.replace(/_/g, " "); }).catch(() => {});
   });
