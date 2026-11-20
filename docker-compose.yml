@@ -1,12 +1,31 @@
-# Prueba local del mismo contenedor que corre en Render:  docker compose up --build  ->  http://localhost:8000
+# Cuatro contenedores vivos y separados:  docker compose up --build
+#   Portal      http://localhost:8000   (barra lateral con los tres apartados)
+#   VIDEO       http://localhost:8001   deteccion en vivo
+#   IMAGEN      http://localhost:8002   verificacion con los temas del curso
+#   PREDICCION  http://localhost:8003   panel y motor
+# Cada servicio se abre tambien por su cuenta. Se hablan por HTTP: VIDEO -> IMAGEN -> PREDICCION.
 services:
-  supervision:
-    build:
-      context: .
-      args:
-        CON_VIDEO: "1"      # "0" = sin detector de VIDEO (imagen liviana)
-    ports:
-      - "8000:8000"
+  video:
+    build: {context: ., dockerfile: servicios/video/Dockerfile}
+    ports: ["8001:8000"]
     environment:
-      PORT: "8000"
-      INTEGRADO_DETECTOR: "video"   # "off" desactiva el detector (la cadena responde 503)
+      IMAGEN_URL: http://imagen:8000
+
+  imagen:
+    build: {context: ., dockerfile: servicios/imagen/Dockerfile}
+    ports: ["8002:8000"]
+    environment:
+      VIDEO_URL: http://video:8000
+      PREDICCION_URL: http://prediccion:8000
+
+  prediccion:
+    build: {context: ., dockerfile: servicios/prediccion/Dockerfile}
+    ports: ["8003:8000"]
+
+  portal:
+    build: {context: ., dockerfile: servicios/portal/Dockerfile}
+    ports: ["8000:8000"]
+    environment:      # direcciones que abre el NAVEGADOR
+      URL_VIDEO: http://localhost:8001
+      URL_IMAGEN: http://localhost:8002
+      URL_PREDICCION: http://localhost:8003

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Supervisión Inteligente · Video, Imagen y Predicción</title>
+  <script src="/config.js"></script>
+  <style>
+    :root { --navy: #0F294A; --hover: #163660; --activo: #1D7AFC; --texto: #E2E8F0; --tenue: #94A3B8; --verde: #10B981; --rojo: #EF4444; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; font: 14px/1.4 Inter, -apple-system, "Segoe UI", Roboto, sans-serif; background: #F4F6F9; }
+    .app { display: flex; height: 100vh; }
+    aside { width: 260px; min-width: 260px; background: var(--navy); color: var(--texto); display: flex; flex-direction: column; padding: 20px 14px; }
+    .marca { padding: 0 8px 18px; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .marca h1 { margin: 0 0 3px; font-size: 16px; color: #fff; line-height: 1.25; }
+    .marca span { font-size: 12px; color: var(--tenue); }
+    .seccion { margin: 18px 8px 8px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--tenue); }
+    button.item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; margin-bottom: 4px; border: 0; border-radius: 10px;
+                  background: transparent; color: var(--texto); font: inherit; font-weight: 500; text-align: left; cursor: pointer; }
+    button.item:hover { background: var(--hover); color: #fff; }
+    button.item.activo { background: var(--activo); color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(29,122,252,.35); }
+    .icono { width: 20px; text-align: center; font-size: 16px; }
+    .texto { flex: 1; } .texto small { display: block; font-size: 11px; font-weight: 400; opacity: .75; }
+    .num { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; background: rgba(255,255,255,.14); color: #fff; }
+    .num.nuevo { background: var(--verde); }
+    .estado { display: flex; align-items: center; gap: 8px; margin-top: auto; padding: 0 8px; font-size: 12px; color: var(--tenue); flex-direction: column; align-items: flex-start; }
+    .punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tenue); margin-right: 6px; }
+    .punto.ok { background: var(--verde); } .punto.mal { background: var(--rojo); }
+    main { flex: 1; min-width: 0; position: relative; }
+    iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #F4F6F9; }
+    iframe.activo { display: block; }
+    @media (max-width: 800px) { aside { width: 200px; min-width: 200px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="marca"><h1>Sistema de Supervisión Inteligente</h1><span>Tres servicios vivos y separados</span></div>
+      <div class="seccion">PROCESOS DEL SISTEMA</div>
+      <button class="item activo" data-s="video"><span class="icono">🎥</span><span class="texto">Video<small>Detecta objetos</small></span><span class="num" id="n-video">1</span></button>
+      <button class="item" data-s="imagen"><span class="icono">🖼️</span><span class="texto">Imagen<small>Mejora y verifica</small></span><span class="num" id="n-imagen">2</span></button>
+      <button class="item" data-s="prediccion"><span class="icono">🔮</span><span class="texto">Predicciones<small>Evalúa el resultado</small></span><span class="num" id="n-prediccion">3</span></button>
+      <div class="estado" aria-label="Estado de los servicios">
+        <div><span class="punto" id="p-video"></span>Servicio Video</div>
+        <div><span class="punto" id="p-imagen"></span>Servicio Imagen</div>
+        <div><span class="punto" id="p-prediccion"></span>Servicio Predicción</div>
+        <div style="margin-top:8px">VIDEO → IMAGEN → PREDICCIÓN</div>
+      </div>
+    </aside>
+    <main>
+      <iframe id="f-video" class="activo" title="Servicio Video" allow="camera; microphone; autoplay"></iframe>
+      <iframe id="f-imagen" title="Servicio Imagen"></iframe>
+      <iframe id="f-prediccion" title="Servicio Predicción" allow="camera; microphone; autoplay"></iframe>
+    </main>
+  </div>
+  <script>
+    (function () {
+      var nombres = ["video", "imagen", "prediccion"], activo = "video", ultimoTs = {};
+      var $ = function (id) { return document.getElementById(id); };
+      // Los tres servicios se cargan a la vez y siguen vivos aunque se cambie de apartado (la camara de VIDEO no se corta).
+      nombres.forEach(function (n) { $("f-" + n).src = window.SERVICIOS[n] + "/?embebido=1"; });
+
+      function mostrar(n) {
+        activo = n;
+        nombres.forEach(function (x) {
+          $("f-" + x).classList.toggle("activo", x === n);
+          document.querySelector('[data-s="' + x + '"]').classList.toggle("activo", x === n);
+        });
+        $("n-" + n).classList.remove("nuevo");
+      }
+      document.querySelectorAll("[data-s]").forEach(function (b) { b.addEventListener("click", function () { mostrar(b.dataset.s); }); });
+
+      function revisar() {
+        nombres.forEach(function (n) {
+          fetch(window.SERVICIOS[n] + "/salud").then(function (r) { $("p-" + n).className = "punto " + (r.ok ? "ok" : "mal"); })
+            .catch(function () { $("p-" + n).className = "punto mal"; });
+        });
+        // El boton se marca en verde cuando IMAGEN o PREDICCION reciben algo nuevo y no se esta mirando ese apartado.
+        ["imagen", "prediccion"].forEach(function (n) {
+          fetch(window.SERVICIOS[n] + "/api/ultimo").then(function (r) { return r.json(); }).then(function (u) {
+            if (u.ts && ultimoTs[n] !== undefined && u.ts !== ultimoTs[n] && activo !== n) $("n-" + n).classList.add("nuevo");
+            ultimoTs[n] = u.ts || 0;
+          }).catch(function () {});
+        });
+      }
+      revisar(); setInterval(revisar, 3000);
+    })();
+  </script>
+</body>
+</html>

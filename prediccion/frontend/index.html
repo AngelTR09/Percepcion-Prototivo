@@ -6,6 +6,7 @@
   <title>Sistema de Supervisión Inteligente · Módulo de Predicción (AulaPredict)</title>
   <link rel="stylesheet" href="/style.css">
   <script src="/app.js" defer></script>
+  <script src="/vista_prediccion.js" defer></script>
 </head>
 <body>
   <div class="app-layout">
@@ -28,11 +29,10 @@
         </div>
 
         <nav class="sidebar-menu" aria-label="Módulo de Predicción">
-          <div class="menu-section-label">MÓDULO ESPECIALIZADO</div>
+          <div class="menu-section-label">SERVICIO 3 DE 3</div>
           <button type="button" class="menu-item active" aria-current="page">
             <span class="menu-icon" aria-hidden="true">🔮</span>
-            <span class="menu-text">Predicciones</span>
-            <span class="menu-badge-active">ACTIVO</span>
+            <span class="menu-text">Predicciones<small>Evalúa el resultado</small></span>
           </button>
         </nav>
 
@@ -58,7 +58,7 @@
           <span class="dot-online" aria-hidden="true"></span>
           <span>Red Local Conectada</span>
         </div>
-        <div class="system-version">AulaPredict Core · Predicción Facial</div>
+        <div class="system-version">Video → Imagen → Predicción</div>
       </div>
     </aside>
 
@@ -66,6 +66,7 @@
          CONTENIDO PRINCIPAL
          ==================================================================== -->
     <div class="app-main-wrap">
+     <div id="vista-prediccion" class="vista-modulo">
       <header class="app-header">
         <div class="header-titles">
           <div class="view-tag">Cerebro Integrador de Predicción</div>
@@ -83,6 +84,13 @@
       </header>
 
       <main class="dashboard-content">
+        <!-- Lo que PREDICCION recibe de VIDEO e IMAGEN (se llena solo cuando hay un hallazgo) -->
+        <section class="card cadena-card" id="cadena-prediccion" aria-labelledby="cadena-titulo">
+          <div class="card-header-bar"><div class="card-title-group"><h3 class="card-title" id="cadena-titulo">🔗 Datos recibidos de VIDEO e IMAGEN</h3></div></div>
+          <p class="verif-ayuda" id="cadena-vacio">Aún no hay datos. Enciende la cámara en Video y muestra un material no permitido: lo que VIDEO detecta y lo que IMAGEN verifica llegará aquí, junto con la evaluación de PREDICCIÓN.</p>
+          <div class="cadena-grid" id="cadena-grid" hidden></div>
+        </section>
+
         <!-- ================================================================
              FILA SUPERIOR (2 COLUMNAS): CAPTURA IZQ + DETECCIÓN Y EXPRESIÓN DER
              ================================================================ -->
@@ -369,7 +377,13 @@
           </section>
         </div>
       </main>
+     </div>
+
     </div>
   </div>
+  <script>
+    // Dentro del portal (iframe) no se repite la barra lateral.
+    if (window.self !== window.top) document.documentElement.classList.add('embebido');
+  </script>
 </body>
 </html>

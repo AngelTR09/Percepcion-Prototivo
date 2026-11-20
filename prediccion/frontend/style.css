@@ -2080,3 +2080,40 @@ body {
   padding: 2px 8px;
 }
 
+
+/* ---- Menú de procesos (Video · Imagen · Predicciones) y vistas informativas ---- */
+.sidebar-menu { display: flex; flex-direction: column; gap: 4px; }
+.menu-item small { display: block; font-size: 11px; font-weight: 400; opacity: 0.7; margin-top: 1px; }
+.menu-item.active small { opacity: 0.9; }
+.menu-badge-paso {
+  font-size: 10px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.14); color: #FFFFFF;
+}
+.menu-enlace { text-decoration: none; box-sizing: border-box; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); border-radius: 0 0 var(--radius-md) var(--radius-md); padding-top: 14px; }
+.vista-modulo[hidden] { display: none; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.info-lista { margin: 8px 0 0; padding-left: 18px; color: var(--text-body); font-size: 14px; line-height: 1.6; }
+.info-lista code, .info-nota code { font-family: var(--font-mono); font-size: 12.5px; background: var(--bg-card-subtle); padding: 1px 5px; border-radius: 4px; }
+.info-sep { margin-top: 18px; }
+.info-nota { margin: 14px 0 0; font-size: 13px; color: var(--text-muted); }
+
+
+/* Predicciones: datos recibidos de VIDEO e IMAGEN */
+.cadena-card { margin-bottom: 20px; }
+.cadena-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 6px; }
+.cadena-col { background: var(--bg-card-subtle); border: 1px solid var(--border-card); border-radius: var(--radius-md); padding: 12px; font-size: 13px; color: var(--text-body); }
+.cadena-col h4 { margin: 0 0 8px; font-size: 13px; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+.cadena-col img { width: 100%; max-height: 170px; object-fit: contain; background: #0F172A; border-radius: var(--radius-sm); display: block; }
+.cadena-miniaturas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+.cadena-miniaturas figure { margin: 0; font-size: 11px; }
+.cadena-miniaturas img { max-height: 90px; }
+.cadena-col ul { margin: 6px 0 0; padding-left: 18px; line-height: 1.5; }
+.cadena-col p { margin: 6px 0 0; }
+.cadena-indice { font-size: 26px; font-weight: 800; color: var(--text-main); }
+
+/* Dentro del portal (iframe) se oculta la barra lateral propia */
+html.embebido .app-sidebar { display: none; }
+html.embebido .app-layout { display: block; }
+.menu-item small { display: block; font-size: 11px; font-weight: 400; opacity: .75; margin-top: 1px; }
+.verif-ayuda { margin: 6px 0 12px; font-size: 13px; color: var(--text-muted); }
