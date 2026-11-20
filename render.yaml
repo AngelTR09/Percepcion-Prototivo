@@ -1,5 +1,6 @@
 # Blueprint de Render (plan gratis): New + Blueprint, y elegir este repositorio. Crea 4 servicios web separados.
-# Si cambias los nombres, actualiza las URLs de abajo (https://<nombre>.onrender.com).
+# Las URLs de abajo deben ser las REALES de cada servicio: Render agrega un sufijo al nombre cuando ya esta en uso
+# (aqui -hrnc). Si al aplicar el Blueprint te da otro sufijo, cambialo en las 6 URLs y haz Manual sync.
 # VIDEO y PREDICCION cargan YOLO (~250 MB cada uno): en el plan gratis (512 MB) caben justo y se duermen tras ~15 min sin visitas.
 services:
   - type: web
@@ -10,7 +11,7 @@ services:
     plan: free
     healthCheckPath: /salud
     envVars:
-      - {key: IMAGEN_URL, value: "https://supervision-imagen.onrender.com"}
+      - {key: IMAGEN_URL, value: "https://supervision-imagen-hrnc.onrender.com"}
 
   - type: web
     name: supervision-imagen
@@ -20,8 +21,8 @@ services:
     plan: free
     healthCheckPath: /salud
     envVars:
-      - {key: VIDEO_URL, value: "https://supervision-video.onrender.com"}
-      - {key: PREDICCION_URL, value: "https://supervision-prediccion.onrender.com"}
+      - {key: VIDEO_URL, value: "https://supervision-video-hrnc.onrender.com"}
+      - {key: PREDICCION_URL, value: "https://supervision-prediccion-hrnc.onrender.com"}
 
   - type: web
     name: supervision-prediccion
@@ -39,6 +40,6 @@ services:
     plan: free
     healthCheckPath: /salud
     envVars:
-      - {key: URL_VIDEO, value: "https://supervision-video.onrender.com"}
-      - {key: URL_IMAGEN, value: "https://supervision-imagen.onrender.com"}
-      - {key: URL_PREDICCION, value: "https://supervision-prediccion.onrender.com"}
+      - {key: URL_VIDEO, value: "https://supervision-video-hrnc.onrender.com"}
+      - {key: URL_IMAGEN, value: "https://supervision-imagen-hrnc.onrender.com"}
+      - {key: URL_PREDICCION, value: "https://supervision-prediccion-hrnc.onrender.com"}
