@@ -24,7 +24,7 @@ jobs:
         run: pip install numpy==1.26.4 scipy==1.17.1 scikit-image==0.26.0 opencv-python-headless==4.11.0.86 fastapi==0.143.0
       - name: El codigo compila
         run: python -m compileall -q servicios integrador prediccion/backend
-      - name: IMAGEN verifica un recorte (sin red: VIDEO no responde y se usa solo la forma)
+      - name: "IMAGEN verifica un recorte (sin red, VIDEO no responde y se usa solo la forma)"
         env:
           VIDEO_URL: http://127.0.0.1:9
         run: |

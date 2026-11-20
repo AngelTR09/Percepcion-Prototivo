@@ -19,6 +19,15 @@ STATIC = Path(__file__).resolve().parent / "static"
 app = FastAPI(title="Portal", version="1.0.0")
 
 
+@app.middleware("http")
+async def sin_cache(request, call_next):
+    """La interfaz siempre se revalida: el navegador no se queda con una version vieja."""
+    respuesta = await call_next(request)
+    if not request.url.path.startswith("/api"):
+        respuesta.headers["Cache-Control"] = "no-cache"
+    return respuesta
+
+
 @app.get("/salud")
 def salud():
     return {"servicio": "portal", "estado": "ok"}

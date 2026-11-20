@@ -26,6 +26,15 @@ LIMITE_BYTES = 32 * 1024 * 1024
 
 app = FastAPI(title="Servicio PREDICCION", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
+
+
+@app.middleware("http")
+async def sin_cache(request, call_next):
+    """La interfaz siempre se revalida: el navegador no se queda con una version vieja."""
+    respuesta = await call_next(request)
+    if not request.url.path.startswith("/api"):
+        respuesta.headers["Cache-Control"] = "no-cache"
+    return respuesta
 _ultimo = {"ts": 0}
 
 
