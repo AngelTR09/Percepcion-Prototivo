@@ -21,7 +21,9 @@
     par.append(figura(u.imagen.objeto, "Objeto prohibido"));
     if (persona) par.append(figura(persona.dataUrl, persona.detectada ? `Persona en ese momento (${pct(persona.confianza)})` : "Fotograma completo"));
     col.append(par);
-    col.append(el("p", `${h.etiqueta} con ${pct(h.confianza)} de confianza (umbral ${pct(h.umbral)}).`));
+    col.append(el("p", h.reclasificado_desde
+      ? `VIDEO dijo ${h.reclasificado_desde} (${pct(h.confianza)}); IMAGEN lo reclasificó como ${h.etiqueta}.`
+      : `${h.etiqueta} con ${pct(h.confianza)} de confianza (umbral ${pct(h.umbral)}).`));
     col.append(el("p", `Recibido a las ${new Date(u.ts * 1000).toLocaleTimeString("es")}. IMAGEN verificó el objeto y lo entregó a PREDICCIÓN; la persona se analiza aquí.`));
     return col;
   }

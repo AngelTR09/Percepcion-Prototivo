@@ -5,7 +5,8 @@
 (function () {
   "use strict";
   const TIEMPO_ALERTA = 2.5;   // segundos: la mitad de los 5 s de VIDEO
-  const ALERTA = new Set(["telefono", "audifonos", "reloj", "cuaderno", "libro"]);   // principal.py de VIDEO
+  // Todo lo que se dibuja en rojo (no permitido) dispara alerta. El principal.py original de VIDEO omitia "laptop" aunque la dibuja en rojo.
+  const ALERTA = new Set(["telefono", "audifonos", "reloj", "cuaderno", "libro", "laptop"]);
   const ANCHO_ENVIO = 640;
   const PAUSA_MS = 100;
   const ENTREGA_CADA_MS = 3000;
@@ -191,7 +192,7 @@
   function marcar(c, r) {
     const chip = $("v-imagen-estado");
     chip.className = "chip " + (r.pasa_a_prediccion ? "ok" : "mal");
-    chip.textContent = `🖼️ IMAGEN: ${c.etiqueta} ${r.pasa_a_prediccion ? "confirmado → PREDICCIÓN" : "falso positivo, descartado"}`;
+    chip.textContent = `🖼️ IMAGEN: ${r.reclasificado_desde ? r.reclasificado_desde + " → " + r.etiqueta : c.etiqueta} ${r.pasa_a_prediccion ? "confirmado → PREDICCIÓN" : "falso positivo, descartado"}`;
     const fig = $("v-alertas").querySelector(`figure[data-clase="${c.clase}"]`);
     if (!fig) return;
     const cap = fig.querySelector("figcaption");

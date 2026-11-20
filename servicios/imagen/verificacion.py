@@ -36,6 +36,7 @@ ANCHO_MIN = 160          # y se amplia si es muy pequeno, para que los bordes se
 UMBRAL_REDETECCION = 0.35
 AREA_MINIMA_RELATIVA = 0.08   # el contorno principal debe cubrir al menos esta fraccion del recorte
 PASAN_A_PREDICCION = {"verificado", "probable"}   # "no_verificado" se descarta como falso positivo
+PROHIBIDAS = {"telefono", "audifonos", "reloj", "cuaderno", "libro", "laptop"}   # lo que VIDEO dibuja en rojo y senala
 EQUIVALENTES = {"cuaderno": {"cuaderno", "libro"}, "libro": {"cuaderno", "libro"}}
 
 # Rangos aproximados de forma por clase (lado largo / lado corto del rectangulo minimo y rectangularidad).
@@ -262,7 +263,6 @@ def analizar_rapido(jpeg_bytes, clase, confianza_video):
 
     otsu = _orientar(segmentacion.mascara_otsu(gris, _kernel(gris)))
     dibujo, medidas = _geometria(otsu, original)
-    forma_ok, motivo_forma = _evaluar_forma(clase, medidas)
 
     # Nueva pasada del detector de VIDEO sobre el recorte ya mejorado (como en la cadena de produccion)
     redeteccion, error_video = _consultar_a_video(mejorada)
@@ -270,7 +270,17 @@ def analizar_rapido(jpeg_bytes, clase, confianza_video):
     misma = [o for o in redeteccion if o["clase"] in validas]
     mejor = max(misma, key=lambda o: o["confianza"], default=None)
     redetectado = bool(mejor and mejor["confianza"] >= UMBRAL_REDETECCION)
-    if redetectado:
+    clase_original = clase
+    # Si VIDEO ve OTRO objeto no permitido en el recorte, sigue siendo un objeto prohibido: se reclasifica, no se descarta.
+    otra = max((o for o in redeteccion if o["clase"] in PROHIBIDAS and o["clase"] not in validas and o["confianza"] >= UMBRAL_REDETECCION),
+               key=lambda o: o["confianza"], default=None)
+    if not redetectado and otra:
+        clase, mejor, redetectado = otra["clase"], otra, True
+    forma_ok, motivo_forma = _evaluar_forma(clase, medidas)
+    if redetectado and clase != clase_original:
+        motivo_det = (f"VIDEO había dicho {clase_original}, pero en el recorte mejorado ve {clase} ({round(mejor['confianza'] * 100)} %): "
+                      "sigue siendo un objeto no permitido y se reclasifica.")
+    elif redetectado:
         motivo_det = f"VIDEO vuelve a ver {mejor['clase']} en el recorte mejorado ({round(mejor['confianza'] * 100)} %)."
     else:
         otras = sorted({o["clase"] for o in redeteccion})
@@ -296,6 +306,7 @@ def analizar_rapido(jpeg_bytes, clase, confianza_video):
 
     return {
         "clase": clase,
+        "clase_original": clase_original,
         "confianza_video": round(float(confianza_video), 3),
         "veredicto": veredicto,
         "pasa_a_prediccion": pasa,
