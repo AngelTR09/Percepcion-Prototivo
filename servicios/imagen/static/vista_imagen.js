@@ -11,7 +11,9 @@
   function pintar(u) {
     const h = u.hallazgo, v = u.resultado;
     $("i-video").className = "chip aviso";
-    $("i-video").textContent = `🎥 VIDEO: ${h.etiqueta} ${pct(h.confianza)} (≥ ${pct(h.umbral)})`;
+    $("i-video").textContent = h.reclasificado_desde
+      ? `🎥 VIDEO: ${h.reclasificado_desde} ${pct(h.confianza)} → IMAGEN lo reclasifica como ${h.etiqueta}`
+      : `🎥 VIDEO: ${h.etiqueta} ${pct(h.confianza)} (≥ ${pct(h.umbral)})`;
     const [clase, etiqueta] = ESTILO[v.veredicto] || ["", v.veredicto];
     $("i-imagen").className = "chip " + clase; $("i-imagen").textContent = `🖼️ IMAGEN: ${h.etiqueta} ${etiqueta}`;
     const pp = $("i-prediccion");

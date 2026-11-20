@@ -32,6 +32,8 @@ from servicios.imagen import verificacion  # noqa: E402
 STATIC = Path(__file__).resolve().parent / "static"
 PREDICCION_URL = os.getenv("PREDICCION_URL", "http://prediccion:8000").rstrip("/")
 LIMITE_BYTES = 32 * 1024 * 1024
+ETIQUETAS = {"persona": "Persona", "mochila": "Mochila", "telefono": "Telefono", "audifonos": "Audifonos", "reloj": "Reloj",
+             "cuaderno": "Cuaderno/Libro", "libro": "Cuaderno/Libro", "laptop": "Laptop"}
 
 app = FastAPI(title="Servicio IMAGEN", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
@@ -89,10 +91,14 @@ def _procesar(h):
     r = verificacion.analizar_rapido(_decodificar(h.get("objeto_b64")), str(h.get("clase", "")).strip().lower(),
                                      float(h.get("confianza", 0)))
     trabajo = r.pop("_trabajo")
+    # Si IMAGEN reclasifica el objeto (VIDEO dijo laptop, es un telefono), todo lo que sigue usa la clase corregida.
+    reclasificado = r["clase"] != r["clase_original"]
+    etiqueta = ETIQUETAS.get(r["clase"], r["clase"]) if reclasificado else h.get("etiqueta")
+    origen = h.get("etiqueta") if reclasificado else None
     entregado, detalle = None, None
     if r["pasa_a_prediccion"]:   # lo no verificado se descarta: no llega a PREDICCION
         cuerpo = {
-            "hallazgo": {"clase": r["clase"], "etiqueta": h.get("etiqueta"), "confianza": h.get("confianza"), "umbral": h.get("umbral")},
+            "hallazgo": {"clase": r["clase"], "etiqueta": etiqueta, "confianza": h.get("confianza"), "umbral": h.get("umbral"), "reclasificado_desde": origen},
             "imagen": {"veredicto": r["veredicto"], "motivos": r["motivos"], "decision": r["decision"],
                        "objeto": r["objeto"], "miniaturas": r["miniaturas"]},
             "contrato": r["contrato_prediccion"],
@@ -107,12 +113,13 @@ def _procesar(h):
     resumen = {k: v for k, v in r.items() if k not in ("contrato_prediccion", "objeto", "miniaturas")}
     _ultimo = {
         "ts": time.time(), "version": mi, "completo": False, "tiempo_ms": round((time.perf_counter() - inicio) * 1000),
-        "hallazgo": {"clase": r["clase"], "etiqueta": h.get("etiqueta"), "confianza": h.get("confianza"), "umbral": h.get("umbral")},
+        "hallazgo": {"clase": r["clase"], "etiqueta": etiqueta, "confianza": h.get("confianza"), "umbral": h.get("umbral"), "reclasificado_desde": origen},
         "resultado": dict(resumen, secciones=[], bordes=None),
         "prediccion": {"entregado": bool(entregado), "detalle": detalle},
     }
     threading.Thread(target=_completar, args=(mi, trabajo), daemon=True).start()
-    return {"veredicto": r["veredicto"], "pasa_a_prediccion": r["pasa_a_prediccion"],
+    return {"clase": r["clase"], "etiqueta": etiqueta, "reclasificado_desde": origen,
+            "veredicto": r["veredicto"], "pasa_a_prediccion": r["pasa_a_prediccion"],
             "decision": r["decision"], "motivos": r["motivos"],
             "prediccion_recibio": bool(entregado), "prediccion_error": detalle}
 
