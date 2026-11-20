@@ -1,0 +1,51 @@
+name: CI
+
+# Los cambios llegan a main solo por Pull Request, con estas dos comprobaciones en verde.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    name: pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias de IMAGEN
+        run: pip install numpy==1.26.4 scipy==1.17.1 scikit-image==0.26.0 opencv-python-headless==4.11.0.86 fastapi==0.143.0
+      - name: El codigo compila
+        run: python -m compileall -q servicios integrador prediccion/backend
+      - name: IMAGEN verifica un recorte (sin red: VIDEO no responde y se usa solo la forma)
+        env:
+          VIDEO_URL: http://127.0.0.1:9
+        run: |
+          python - <<'EOF'
+          import sys
+          sys.path.insert(0, "integrador")
+          import cv2, numpy as np
+          from servicios.imagen import verificacion
+          lienzo = np.full((300, 220, 3), 200, np.uint8)
+          cv2.rectangle(lienzo, (60, 30), (160, 270), (40, 40, 40), -1)
+          r = verificacion.verificar_recorte(cv2.imencode(".jpg", lienzo)[1].tobytes(), "telefono", 0.7)
+          assert r["veredicto"] in ("verificado", "probable", "no_verificado"), r["veredicto"]
+          assert len(r["secciones"]) == 4 and r["forma"], "faltan secciones o forma"
+          print("veredicto:", r["veredicto"], "| pasa a PREDICCION:", r["pasa_a_prediccion"])
+          EOF
+
+  docker:
+    name: docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir los cuatro servicios
+        run: docker compose build
