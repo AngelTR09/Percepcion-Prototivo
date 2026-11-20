@@ -2,6 +2,7 @@
 import base64
 import os
 import threading
+import time
 
 import cv2
 import numpy as np
@@ -112,3 +113,34 @@ def analizar_frame(frame, *, timestamp=0.0, frame_id=0, objetos_permitidos=None,
     if devolver_imagen:
         salida["imagen"]["mejorada_b64"] = codificar_jpg(mejorado)
     return salida
+
+
+_candado_vivo = threading.Lock()
+
+# Lo mismo que dibuja VIDEO (modulos/deteccion.py): azul = permitido, rojo = el resto.
+PERMITIDOS_VIDEO = {"persona", "mochila"}
+NOMBRES_VIDEO = {"persona": "Persona", "mochila": "Mochila", "telefono": "Telefono", "audifonos": "Audifonos",
+                 "reloj": "Reloj", "cuaderno": "Cuaderno/Libro", "libro": "Cuaderno/Libro", "laptop": "Laptop"}
+
+
+def detectar_en_vivo(jpeg_bytes):
+    """Deteccion de VIDEO sobre un fotograma, para dibujar sus recuadros en vivo.
+
+    Usa el detector del grupo VIDEO tal cual (sus umbrales por clase). Cajas en pixeles del frame recibido.
+    """
+    frame = cv2.imdecode(np.frombuffer(jpeg_bytes, np.uint8), cv2.IMREAD_COLOR)
+    if frame is None or frame.size == 0:
+        raise ImagenInvalida("No se pudo decodificar la imagen")
+    detector = obtener_detector()
+    alto, ancho = frame.shape[:2]
+    inicio = time.perf_counter()
+    with _candado_vivo:  # un solo hilo a la vez sobre el modelo
+        detecciones = detector(frame)
+    return {
+        "ancho": ancho, "alto": alto, "latencia_ms": round((time.perf_counter() - inicio) * 1000, 1),
+        "objetos": [{
+            "clase": d["clase"], "etiqueta": NOMBRES_VIDEO.get(d["clase"], d["clase"]),
+            "confianza": round(float(d["confianza"]), 4), "permitido": d["clase"] in PERMITIDOS_VIDEO,
+            "caja": {"x1": d["bbox"][0], "y1": d["bbox"][1], "x2": d["bbox"][2], "y2": d["bbox"][3]},
+        } for d in detecciones],
+    }

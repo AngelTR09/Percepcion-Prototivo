@@ -10,3 +10,7 @@ services:
     environment:
       PORT: "8000"
       INTEGRADO_DETECTOR: "video"   # "off" desactiva el detector (la cadena responde 503)
+      AULAPREDICT_MODELOS_FASE8: /app/modelos   # facial.joblib (HOG + SVM), ver prediccion/docs/MODELOS_INFERENCIA.md
+    volumes:
+      # Pesos entrenados localmente (no van en git). Si la carpeta esta vacia, el modelo facial queda "no disponible".
+      - ./prediccion/_archivo/fase8/modelos:/app/modelos:ro

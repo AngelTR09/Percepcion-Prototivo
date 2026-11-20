@@ -20,6 +20,7 @@ integrador/docs
 integrador/datos
 integrador/salidas
 prediccion/docs
+prediccion/_archivo
 prediccion/ejemplos
 prediccion/**/node_modules
 tests

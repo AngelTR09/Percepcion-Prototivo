@@ -9,6 +9,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     YOLO_CONFIG_DIR=/tmp/Ultralytics \
+    AULAPREDICT_YOLO_DIR=/app/integrador/video_base/modelo_ia \
     PORT=8000
 
 RUN apt-get update \

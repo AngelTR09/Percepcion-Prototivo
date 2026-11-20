@@ -6,6 +6,9 @@
   <title>Sistema de Supervisión Inteligente · Módulo de Predicción (AulaPredict)</title>
   <link rel="stylesheet" href="/style.css">
   <script src="/app.js" defer></script>
+  <script src="/vista_video.js" defer></script>
+  <script src="/vista_imagen.js" defer></script>
+  <script src="/vista_prediccion.js" defer></script>
 </head>
 <body>
   <div class="app-layout">
@@ -27,13 +30,27 @@
           </div>
         </div>
 
-        <nav class="sidebar-menu" aria-label="Módulo de Predicción">
-          <div class="menu-section-label">MÓDULO ESPECIALIZADO</div>
-          <button type="button" class="menu-item active" aria-current="page">
-            <span class="menu-icon" aria-hidden="true">🔮</span>
-            <span class="menu-text">Predicciones</span>
-            <span class="menu-badge-active">ACTIVO</span>
+        <nav class="sidebar-menu" aria-label="Procesos del sistema">
+          <div class="menu-section-label">PROCESOS DEL SISTEMA</div>
+          <button type="button" class="menu-item" data-vista="video">
+            <span class="menu-icon" aria-hidden="true">🎥</span>
+            <span class="menu-text">Video<small>Detecta objetos</small></span>
+            <span class="menu-badge-paso">1</span>
           </button>
+          <button type="button" class="menu-item" data-vista="imagen">
+            <span class="menu-icon" aria-hidden="true">🖼️</span>
+            <span class="menu-text">Imagen<small>Mejora y verifica</small></span>
+            <span class="menu-badge-paso">2</span>
+          </button>
+          <button type="button" class="menu-item active" data-vista="prediccion" aria-current="page">
+            <span class="menu-icon" aria-hidden="true">🔮</span>
+            <span class="menu-text">Predicciones<small>Evalúa el resultado</small></span>
+            <span class="menu-badge-paso">3</span>
+          </button>
+          <a class="menu-item menu-enlace" href="/integrado">
+            <span class="menu-icon" aria-hidden="true">🔗</span>
+            <span class="menu-text">Cadena completa<small>Video → Imagen → Predicción</small></span>
+          </a>
         </nav>
 
         <div class="sidebar-model-info">
@@ -58,7 +75,7 @@
           <span class="dot-online" aria-hidden="true"></span>
           <span>Red Local Conectada</span>
         </div>
-        <div class="system-version">AulaPredict Core · Predicción Facial</div>
+        <div class="system-version">Video → Imagen → Predicción</div>
       </div>
     </aside>
 
@@ -66,6 +83,7 @@
          CONTENIDO PRINCIPAL
          ==================================================================== -->
     <div class="app-main-wrap">
+     <div id="vista-prediccion" class="vista-modulo">
       <header class="app-header">
         <div class="header-titles">
           <div class="view-tag">Cerebro Integrador de Predicción</div>
@@ -83,6 +101,13 @@
       </header>
 
       <main class="dashboard-content">
+        <!-- Lo que PREDICCION recibe de VIDEO e IMAGEN (se llena solo cuando hay un hallazgo) -->
+        <section class="card cadena-card" id="cadena-prediccion" aria-labelledby="cadena-titulo">
+          <div class="card-header-bar"><div class="card-title-group"><h3 class="card-title" id="cadena-titulo">🔗 Datos recibidos de VIDEO e IMAGEN</h3></div></div>
+          <p class="verif-ayuda" id="cadena-vacio">Aún no hay datos. Enciende la cámara en Video y muestra un material no permitido: lo que VIDEO detecta y lo que IMAGEN verifica llegará aquí, junto con la evaluación de PREDICCIÓN.</p>
+          <div class="cadena-grid" id="cadena-grid" hidden></div>
+        </section>
+
         <!-- ================================================================
              FILA SUPERIOR (2 COLUMNAS): CAPTURA IZQ + DETECCIÓN Y EXPRESIÓN DER
              ================================================================ -->
@@ -369,7 +394,116 @@
           </section>
         </div>
       </main>
+     </div>
+
+     <div id="vista-video" class="vista-modulo" hidden>
+      <header class="app-header">
+        <div class="header-titles">
+          <div class="view-tag">Proceso 1 de 3 · Grupo VIDEO</div>
+          <h2 class="view-title">🎥 Video · Detección de objetos en vivo</h2>
+          <p class="view-subtitle">Detecta personas y materiales no permitidos. Azul: permitido (persona, mochila) · Rojo: no permitido. Si un material no permitido permanece 2,5 segundos, genera una alerta. IMAGEN decide después si es real o un falso positivo.</p>
+        </div>
+      </header>
+      <main class="dashboard-content">
+        <div class="video-grid">
+          <section class="card camera-card" aria-labelledby="v-titulo">
+            <div class="card-header-bar">
+              <div class="card-title-group">
+                <h3 class="card-title" id="v-titulo">🎥 Cámara con detección de VIDEO</h3>
+                <span id="v-estado" class="live-indicator-chip waiting"><span class="dot-live" aria-hidden="true"></span><span id="v-estado-texto" role="status">Cámara detenida</span></span>
+              </div>
+              <label class="verif-umbral" for="umbral-video">Umbral para pasar a IMAGEN
+                <input id="umbral-video" type="number" min="15" max="95" step="5" value="50"> %
+              </label>
+            </div>
+            <div class="camera-viewport-container v-viewport">
+              <video id="v-video" playsinline autoplay muted></video>
+              <canvas id="v-canvas"></canvas>
+              <div id="v-placeholder" class="camera-fallback-screen">
+                <div class="cam-icon-circle" aria-hidden="true">🎥</div>
+                <h4>Cámara de VIDEO</h4>
+                <p>Enciende la cámara para detectar personas y materiales no permitidos.</p>
+              </div>
+            </div>
+            <div class="capture-controls-toolbar">
+              <button type="button" class="btn-action-primary" id="v-iniciar">▶ Encender cámara</button>
+              <button type="button" class="btn-action-ghost" id="v-detener" hidden>Detener cámara</button>
+            </div>
+            <p class="capture-note" id="v-nota">VIDEO usa su propio modelo (best.pt) con sus umbrales por clase. Los objetos que superen el umbral se envían a IMAGEN.</p>
+          </section>
+          <aside class="v-lateral">
+            <section class="card">
+              <h3 class="card-title">Detecciones ahora</h3>
+              <ul class="info-lista" id="v-lista"><li>Sin detecciones.</li></ul>
+            </section>
+            <section class="card">
+              <h3 class="card-title">Alertas generadas</h3>
+              <p class="info-nota" id="v-alertas-vacio">Aún no hay alertas.</p>
+              <div class="v-alertas" id="v-alertas"></div>
+            </section>
+          </aside>
+        </div>
+        <div class="info-grid v-info">
+          <section class="card"><h3 class="card-title">Qué hace</h3><ul class="info-lista"><li>Detecta personas, mochilas, teléfonos, cuadernos/libros, audífonos, relojes y laptops con un modelo YOLO.</li><li>Marca en azul lo permitido y en rojo lo no permitido.</li><li>Si un objeto no permitido permanece 2,5 segundos, genera una alerta con captura y sonido. El contador se reinicia cuando el objeto desaparece.</li></ul></section>
+          <section class="card"><h3 class="card-title">Entrega a IMAGEN</h3><ul class="info-lista"><li>El recorte del objeto no permitido con su clase y confianza, cuando supera el umbral.</li></ul></section>
+          <section class="card"><h3 class="card-title">Dónde está</h3><ul class="info-lista"><li>Código: <code>integrador/video_base/</code> (copia de solo lectura del grupo VIDEO).</li><li>Modelo: <code>video_base/modelo_ia/best.pt</code>.</li></ul>
+            <p class="info-nota">Estado del detector: <strong id="estado-detector-video">consultando…</strong></p></section>
+        </div>
+      </main>
+     </div>
+
+     <div id="vista-imagen" class="vista-modulo" hidden>
+      <header class="app-header">
+        <div class="header-titles">
+          <div class="view-tag">Proceso 2 de 3 · Grupo IMAGEN</div>
+          <h2 class="view-title">🖼️ Imagen · Verificación con los temas del curso</h2>
+          <p class="view-subtitle">Recibe el objeto que VIDEO detectó y lo analiza con las técnicas vistas en el curso. Cada paso muestra su resultado.</p>
+        </div>
+      </header>
+      <main class="dashboard-content">
+        <section class="card verif-card" aria-labelledby="i-titulo">
+          <div class="card-header-bar"><div class="card-title-group"><h3 class="card-title" id="i-titulo">Cadena: VIDEO → IMAGEN</h3></div></div>
+          <div class="verif-flujo" aria-label="Flujo de la cadena">
+            <span class="verif-paso" id="i-video">🎥 VIDEO: sin hallazgos todavía</span>
+            <span class="verif-flecha" aria-hidden="true">→</span>
+            <span class="verif-paso" id="i-imagen">🖼️ IMAGEN: sin verificar</span>
+            <span class="verif-flecha" aria-hidden="true">→</span>
+            <span class="verif-paso" id="i-prediccion">🔮 PREDICCIÓN: sin datos</span>
+          </div>
+          <p class="verif-ayuda" id="i-ayuda">Enciende la cámara en el apartado Video y muestra un material no permitido (teléfono, cuaderno, libro, audífonos o reloj). Cuando VIDEO lo detecte por encima del umbral, aparecerá aquí su análisis.</p>
+          <div class="verif-detalle" id="i-detalle" hidden></div>
+        </section>
+        <div id="i-secciones"></div>
+        <div class="info-grid v-info">
+          <section class="card"><h3 class="card-title">Qué hace</h3><ul class="info-lista"><li>Recorta el objeto que VIDEO señaló y lo analiza con los temas del curso: filtros de ruido (S03), mejoramiento y transformaciones (S04), segmentación (S05) y bordes y características (S06).</li><li>Comprueba la forma del contorno y vuelve a pasar el detector de VIDEO sobre el recorte mejorado. Emite un veredicto con sus motivos. IMAGEN tiene la última palabra: si no verifica el objeto, lo descarta como falso positivo y no llega a PREDICCIÓN.</li></ul></section>
+          <section class="card"><h3 class="card-title">Dónde está</h3><ul class="info-lista"><li>Código: <code>integrador/imagen/</code> (preprocesamiento, mejoramiento, segmentación, características, transformaciones).</li><li>Verificación en vivo: <code>ensamble/verificacion.py</code>.</li></ul></section>
+        </div>
+      </main>
+     </div>
     </div>
   </div>
+  <script>
+    // Cambia entre los tres procesos del sistema sin recargar la página.
+    (function () {
+      var botones = document.querySelectorAll('[data-vista]');
+      function mostrar(nombre) {
+        document.querySelectorAll('.vista-modulo').forEach(function (v) { v.hidden = v.id !== 'vista-' + nombre; });
+        botones.forEach(function (b) {
+          var activo = b.dataset.vista === nombre;
+          b.classList.toggle('active', activo);
+          if (activo) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+        });
+        if (nombre === 'video') estadoDetector();
+        document.dispatchEvent(new CustomEvent('vista-cambiada', { detail: nombre }));
+      }
+      function estadoDetector() {
+        var el = document.getElementById('estado-detector-video');
+        fetch('/api/integrado/estado').then(function (r) { return r.json(); })
+          .then(function (d) { el.textContent = (d.detector_video || 'desconocido').replace(/_/g, ' '); })
+          .catch(function () { el.textContent = 'no disponible en este despliegue'; });
+      }
+      botones.forEach(function (b) { b.addEventListener('click', function () { mostrar(b.dataset.vista); }); });
+    })();
+  </script>
 </body>
 </html>
