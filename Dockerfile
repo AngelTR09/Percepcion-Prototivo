@@ -8,8 +8,11 @@ ARG CON_VIDEO=1
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
+    PIP_DEFAULT_TIMEOUT=120 \
+    PIP_RETRIES=10 \
     YOLO_CONFIG_DIR=/tmp/Ultralytics \
     AULAPREDICT_YOLO_DIR=/app/integrador/video_base/modelo_ia \
+    AULAPREDICT_MODELOS_FASE8=/app/prediccion/pesos/fase8 \
     PORT=8000
 
 RUN apt-get update \

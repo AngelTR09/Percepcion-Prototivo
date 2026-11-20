@@ -80,3 +80,7 @@ pyrightconfig.json
 docs_entrega/
 *.docx
 *.pptx
+
+# Pesos del modelo facial que necesita el despliegue (392 KB)
+!pesos/
+!pesos/**
