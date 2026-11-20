@@ -66,6 +66,19 @@ def _cargar():
     return _detector
 
 
+def _calentar():
+    """Carga el modelo y hace una deteccion de prueba al arrancar: la primera peticion real ya no paga la carga."""
+    try:
+        _detectar(cv2.imencode(".jpg", np.zeros((64, 64, 3), np.uint8))[1].tobytes())
+    except Exception:
+        pass
+
+
+@app.on_event("startup")
+def al_arrancar():
+    threading.Thread(target=_calentar, daemon=True).start()
+
+
 @app.get("/salud")
 def salud():
     return {"servicio": "video", "estado": "ok"}

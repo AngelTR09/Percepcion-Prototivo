@@ -1228,7 +1228,7 @@ async function procesarCaptura(obtenerImagen, origen) {
   const limite = setTimeout(() => {
     agotado = true;
     controlador.abort();
-  }, 30000);
+  }, 180000);
 
   try {
     const imagen = await obtenerImagen(signal);

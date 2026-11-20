@@ -23,7 +23,8 @@ RUN pip install -r requirements.txt \
     && pip install --force-reinstall --no-deps opencv-python-headless==4.11.0.86
 
 ENV YOLO_CONFIG_DIR=/tmp/Ultralytics \
-    AULAPREDICT_MODELOS_FASE8=/app/prediccion/pesos/fase8
+    AULAPREDICT_MODELOS_FASE8=/app/prediccion/pesos/fase8 \
+    AULAPREDICT_DETECTOR_OBJETOS=off
 COPY prediccion/backend ./prediccion/backend
 COPY prediccion/frontend ./prediccion/frontend
 COPY prediccion/pesos ./prediccion/pesos

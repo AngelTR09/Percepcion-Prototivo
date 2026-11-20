@@ -13,6 +13,7 @@ import base64
 import json
 import os
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -31,7 +32,6 @@ from servicios.imagen import verificacion  # noqa: E402
 STATIC = Path(__file__).resolve().parent / "static"
 PREDICCION_URL = os.getenv("PREDICCION_URL", "http://prediccion:8000").rstrip("/")
 LIMITE_BYTES = 32 * 1024 * 1024
-MINIATURAS = ("CLAHE", "Bordes Canny", "Otsu + morfología", "Contornos y forma")   # evidencia que viaja a PREDICCION
 
 app = FastAPI(title="Servicio IMAGEN", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
@@ -45,6 +45,7 @@ async def sin_cache(request, call_next):
         respuesta.headers["Cache-Control"] = "no-cache"
     return respuesta
 _ultimo = {"ts": 0}
+_version = 0
 
 
 @app.get("/salud")
@@ -69,36 +70,50 @@ def _entregar_a_prediccion(cuerpo):
         return json.loads(respuesta.read())
 
 
+def _completar(mi, trabajo):
+    """Segundo tiempo: las imagenes de evidencia (parte pesada). Si llego otro hallazgo, se descarta."""
+    global _ultimo
+    try:
+        extra = verificacion.construir_secciones(trabajo)
+    except Exception:
+        return
+    actual = _ultimo
+    if actual.get("version") == mi:
+        _ultimo = dict(actual, completo=True, resultado=dict(actual["resultado"], **extra))
+
+
 def _procesar(h):
+    """Primer tiempo: veredicto y entrega a PREDICCION. Es lo unico que espera VIDEO."""
+    global _ultimo, _version
     inicio = time.perf_counter()
-    resultado = verificacion.verificar_recorte(_decodificar(h.get("objeto_b64")), str(h.get("clase", "")).strip().lower(),
-                                               float(h.get("confianza", 0)))
+    r = verificacion.analizar_rapido(_decodificar(h.get("objeto_b64")), str(h.get("clase", "")).strip().lower(),
+                                     float(h.get("confianza", 0)))
+    trabajo = r.pop("_trabajo")
     entregado, detalle = None, None
-    if resultado["pasa_a_prediccion"]:   # lo no verificado se descarta: no llega a PREDICCION
-        todos = [it for s in resultado["secciones"] for it in s["items"]]
+    if r["pasa_a_prediccion"]:   # lo no verificado se descarta: no llega a PREDICCION
         cuerpo = {
-            "hallazgo": {"clase": resultado["clase"], "etiqueta": h.get("etiqueta"), "confianza": h.get("confianza"), "umbral": h.get("umbral")},
-            "imagen": {
-                "veredicto": resultado["veredicto"], "motivos": resultado["motivos"], "decision": resultado["decision"],
-                "objeto": resultado["secciones"][0]["items"][0]["imagen"],
-                "miniaturas": [{"titulo": t["titulo"], "imagen": t["imagen"]} for t in todos if t["titulo"] in MINIATURAS],
-            },
-            "contrato": resultado["contrato_prediccion"],
+            "hallazgo": {"clase": r["clase"], "etiqueta": h.get("etiqueta"), "confianza": h.get("confianza"), "umbral": h.get("umbral")},
+            "imagen": {"veredicto": r["veredicto"], "motivos": r["motivos"], "decision": r["decision"],
+                       "objeto": r["objeto"], "miniaturas": r["miniaturas"]},
+            "contrato": r["contrato_prediccion"],
             "persona": h.get("persona"),
         }
         try:
             entregado = _entregar_a_prediccion(cuerpo)
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             entregado, detalle = False, str(error)
-    _ultimo.clear()
-    _ultimo.update({
-        "ts": time.time(), "tiempo_ms": round((time.perf_counter() - inicio) * 1000),
-        "hallazgo": {"clase": resultado["clase"], "etiqueta": h.get("etiqueta"), "confianza": h.get("confianza"), "umbral": h.get("umbral")},
-        "resultado": {k: v for k, v in resultado.items() if k != "contrato_prediccion"},
+    _version += 1
+    mi = _version
+    resumen = {k: v for k, v in r.items() if k not in ("contrato_prediccion", "objeto", "miniaturas")}
+    _ultimo = {
+        "ts": time.time(), "version": mi, "completo": False, "tiempo_ms": round((time.perf_counter() - inicio) * 1000),
+        "hallazgo": {"clase": r["clase"], "etiqueta": h.get("etiqueta"), "confianza": h.get("confianza"), "umbral": h.get("umbral")},
+        "resultado": dict(resumen, secciones=[], bordes=None),
         "prediccion": {"entregado": bool(entregado), "detalle": detalle},
-    })
-    return {"veredicto": resultado["veredicto"], "pasa_a_prediccion": resultado["pasa_a_prediccion"],
-            "decision": resultado["decision"], "motivos": resultado["motivos"],
+    }
+    threading.Thread(target=_completar, args=(mi, trabajo), daemon=True).start()
+    return {"veredicto": r["veredicto"], "pasa_a_prediccion": r["pasa_a_prediccion"],
+            "decision": r["decision"], "motivos": r["motivos"],
             "prediccion_recibio": bool(entregado), "prediccion_error": detalle}
 
 

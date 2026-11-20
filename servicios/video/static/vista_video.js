@@ -129,6 +129,15 @@
     return lienzo;
   }
 
+  // Reduce un lienzo a un ancho maximo (el analisis en un servidor lento cuesta segun los pixeles).
+  function limitar(lienzo, anchoMax) {
+    if (lienzo.width <= anchoMax) return lienzo;
+    const r = document.createElement("canvas");
+    r.width = anchoMax; r.height = Math.round(lienzo.height * anchoMax / lienzo.width);
+    r.getContext("2d").drawImage(lienzo, 0, 0, r.width, r.height);
+    return r;
+  }
+
   async function entregarAImagen() {
     if (entregando || !ultimas || performance.now() - ultimaEntrega < ENTREGA_CADA_MS) return;
     const c = ultimas.objetos.filter((o) => ALERTA.has(o.clase) && o.confianza >= umbral())
@@ -137,13 +146,13 @@
     entregando = true; ultimaEntrega = performance.now();
     const foto = instantanea();
     const p = ultimas.objetos.filter((o) => o.clase === "persona").sort((a, b) => b.confianza - a.confianza)[0];
-    const lienzoPersona = p ? recortar(foto, p, 0.25) : foto;   // sin persona detectada: el fotograma completo
+    const lienzoPersona = limitar(p ? recortar(foto, p, 0.25) : foto, 720);   // sin persona detectada: el fotograma completo
     const cuerpo = {
       clase: c.clase, etiqueta: c.etiqueta, confianza: c.confianza, umbral: umbral(),
       objeto_b64: recortar(foto, c, 0.12).toDataURL("image/jpeg", 0.92),
       persona: {
-        dataUrl: lienzoPersona.toDataURL("image/jpeg", 0.92), detectada: Boolean(p), confianza: p ? p.confianza : null,
-        completa: foto.toDataURL("image/jpeg", 0.9),   // respaldo si el recorte no incluye el rostro
+        dataUrl: lienzoPersona.toDataURL("image/jpeg", 0.88), detectada: Boolean(p), confianza: p ? p.confianza : null,
+        completa: limitar(foto, 800).toDataURL("image/jpeg", 0.85),   // respaldo si el recorte no incluye el rostro
       },
     };
     $("v-imagen-estado").className = "chip"; $("v-imagen-estado").textContent = "🖼️ IMAGEN: verificando…";
