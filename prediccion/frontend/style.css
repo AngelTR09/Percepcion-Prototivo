@@ -2098,51 +2098,6 @@ body {
 .info-sep { margin-top: 18px; }
 .info-nota { margin: 14px 0 0; font-size: 13px; color: var(--text-muted); }
 
-/* Apartado VIDEO */
-.video-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr); gap: 20px; align-items: start; }
-.v-lateral { display: flex; flex-direction: column; gap: 20px; }
-#v-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
-#v-video.active { display: block; }
-#v-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
-.v-viewport { margin: 12px 0; }
-.v-ok { color: #1D4ED8; }
-.v-mal { color: #B91C1C; font-weight: 600; }
-.v-alertas { display: grid; gap: 10px; margin-top: 8px; max-height: 360px; overflow: auto; }
-.v-alertas figure { margin: 0; }
-.v-alertas img { width: 100%; border-radius: var(--radius-sm); display: block; }
-.v-alertas figcaption { font-size: 12px; color: var(--text-body); margin-top: 4px; }
-.v-info { margin-top: 20px; }
-@media (max-width: 900px) { .video-grid { grid-template-columns: 1fr; } }
-
-/* Apartado IMAGEN */
-.i-seccion { margin-top: 20px; }
-.i-cabecera { display: flex; align-items: center; gap: 10px; }
-.i-semana { font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 3px 9px; border-radius: var(--radius-pill); background: var(--bg-blue-light); color: #1D4ED8; border: 1px solid var(--border-blue-light); }
-.menu-badge-paso.nuevo { background: var(--color-green); }
-
-/* Evidencia de IMAGEN: pasos, flujo y detalle */
-.verif-card { margin-top: 0; }
-.verif-umbral { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
-.verif-umbral input { width: 62px; padding: 4px 6px; border: 1px solid var(--border-card); border-radius: var(--radius-sm); }
-.verif-flujo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 6px 0 4px; }
-.verif-paso { padding: 7px 12px; border-radius: var(--radius-pill); background: var(--bg-card-subtle); border: 1px solid var(--border-card); font-size: 13px; font-weight: 600; color: var(--text-body); }
-.verif-paso.ok { background: var(--color-green-bg); border-color: #A7F3D0; color: #047857; }
-.verif-paso.medio { background: var(--color-amber-bg); border-color: #FDE68A; color: #92400E; }
-.verif-paso.mal { background: var(--color-danger-bg); border-color: #FECACA; color: #B91C1C; }
-.verif-paso.aviso { background: var(--bg-blue-light); border-color: var(--border-blue-light); color: #1D4ED8; }
-.verif-flecha { color: var(--text-muted); font-weight: 700; }
-.verif-ayuda { margin: 6px 0 12px; font-size: 13px; color: var(--text-muted); }
-.verif-pasos { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 8px; }
-.verif-pasos figure { margin: 0; background: var(--bg-card-subtle); border: 1px solid var(--border-card); border-radius: var(--radius-md); padding: 8px; }
-.verif-pasos img { width: 100%; height: 150px; object-fit: contain; background: #0F172A; border-radius: var(--radius-sm); display: block; }
-.verif-pasos figcaption { margin-top: 6px; font-size: 12px; line-height: 1.35; color: var(--text-body); }
-.verif-pasos figcaption strong { display: block; color: var(--text-main); }
-.verif-detalle { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; font-size: 13px; color: var(--text-body); }
-.verif-detalle h4 { margin: 0 0 6px; font-size: 13px; color: var(--text-main); }
-.verif-detalle ul { margin: 0; padding-left: 18px; line-height: 1.55; }
-.verif-detalle dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; }
-.verif-detalle dt { color: var(--text-muted); }
-.verif-detalle dd { margin: 0; font-weight: 600; }
 
 /* Predicciones: datos recibidos de VIDEO e IMAGEN */
 .cadena-card { margin-bottom: 20px; }
@@ -2156,3 +2111,9 @@ body {
 .cadena-col ul { margin: 6px 0 0; padding-left: 18px; line-height: 1.5; }
 .cadena-col p { margin: 6px 0 0; }
 .cadena-indice { font-size: 26px; font-weight: 800; color: var(--text-main); }
+
+/* Dentro del portal (iframe) se oculta la barra lateral propia */
+html.embebido .app-sidebar { display: none; }
+html.embebido .app-layout { display: block; }
+.menu-item small { display: block; font-size: 11px; font-weight: 400; opacity: .75; margin-top: 1px; }
+.verif-ayuda { margin: 6px 0 12px; font-size: 13px; color: var(--text-muted); }

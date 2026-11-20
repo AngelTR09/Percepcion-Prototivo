@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Servicio VIDEO · Detección de objetos en vivo</title>
+  <link rel="stylesheet" href="/estilos.css">
+  <script src="/vista_video.js" defer></script>
+</head>
+<body>
+  <header class="cabecera">
+    <div class="etiqueta">Servicio 1 de 3 · Grupo VIDEO</div>
+    <h1>🎥 Video · Detección de objetos en vivo</h1>
+    <p>Detecta personas y materiales no permitidos. Azul: permitido (persona, mochila) · Rojo: no permitido. Si un material no permitido permanece 2,5 segundos, genera una alerta. IMAGEN decide después si es real o un falso positivo.</p>
+  </header>
+  <main class="contenido">
+    <div class="video-grid">
+      <section class="tarjeta">
+        <div class="barra">
+          <div class="grupo"><h2>🎥 Cámara con detección de VIDEO</h2>
+            <span id="v-estado" class="chip"><span id="v-estado-texto" role="status">Cámara detenida</span></span>
+            <span id="v-imagen-estado" class="chip">🖼️ IMAGEN: sin hallazgos</span></div>
+          <label class="umbral" for="umbral-video">Umbral para pasar a IMAGEN
+            <input id="umbral-video" type="number" min="15" max="95" step="5" value="50"> %
+          </label>
+        </div>
+        <div class="visor">
+          <video id="v-video" playsinline autoplay muted></video>
+          <canvas id="v-canvas"></canvas>
+          <div id="v-placeholder" class="placeholder"><div class="icono" aria-hidden="true">🎥</div><h3>Cámara de VIDEO</h3><p>Enciende la cámara para detectar personas y materiales no permitidos.</p></div>
+        </div>
+        <div class="acciones">
+          <button type="button" class="boton" id="v-iniciar">▶ Encender cámara</button>
+          <button type="button" class="boton claro" id="v-detener" hidden>Detener cámara</button>
+        </div>
+        <p class="nota">VIDEO usa su propio modelo (best.pt) con sus umbrales por clase. Los objetos no permitidos que superen el umbral se envían al servicio IMAGEN.</p>
+      </section>
+      <aside class="lateral">
+        <section class="tarjeta"><h2>Detecciones ahora</h2><ul class="lista" id="v-lista"><li>Sin detecciones.</li></ul></section>
+        <section class="tarjeta"><h2>Alertas generadas</h2>
+          <p class="nota" id="v-alertas-vacio">Aún no hay alertas.</p><div class="alertas" id="v-alertas"></div></section>
+      </aside>
+    </div>
+    <div class="info-grid">
+      <section class="tarjeta"><h2>Qué hace</h2><ul class="lista"><li>Detecta personas, mochilas, teléfonos, cuadernos/libros, audífonos, relojes y laptops con un modelo YOLO.</li><li>Marca en azul lo permitido y en rojo lo no permitido.</li><li>Si un objeto no permitido permanece 2,5 segundos, genera una alerta con captura y sonido. El contador se reinicia cuando el objeto desaparece.</li></ul></section>
+      <section class="tarjeta"><h2>Entrega a IMAGEN</h2><ul class="lista"><li>El recorte del objeto no permitido y la persona del mismo fotograma, con su clase y confianza, cuando supera el umbral.</li></ul></section>
+      <section class="tarjeta"><h2>Dónde está</h2><ul class="lista"><li>Código: <code>integrador/video_base/</code> y <code>servicios/video/</code>.</li><li>Modelo: <code>best.pt</code>.</li></ul>
+        <p class="nota">Estado del detector: <strong id="estado-detector-video">consultando…</strong></p></section>
+    </div>
+  </main>
+</body>
+</html>

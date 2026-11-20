@@ -1,23 +1,34 @@
-# Sistema de Supervisión Inteligente (VIDEO + IMAGEN + PREDICCIÓN)
+# Sistema de Supervisión Inteligente: VIDEO + IMAGEN + PREDICCIÓN
 
-Un solo servicio FastAPI con tres apartados: **Video** (detección de objetos en vivo), **Imagen** (verificación del objeto con las técnicas del curso) y **Predicciones** (evaluación y análisis facial). IMAGEN tiene la última palabra: lo que no verifica se descarta como falso positivo y no llega a PREDICCIÓN.
+Tres servicios vivos e independientes (cada uno con su propio contenedor, interfaz, API y código) y un portal que los reúne en una barra lateral. Se comunican por HTTP:
+
+```
+VIDEO ──hallazgo──▶ IMAGEN ──(solo si verifica)──▶ PREDICCIÓN
+```
+
+IMAGEN tiene la última palabra: lo que no verifica se descarta como falso positivo y no llega a PREDICCIÓN.
+
+| Servicio | Puerto | Qué hace | Código |
+|---|---|---|---|
+| Portal | 8000 | Barra lateral con los tres apartados | `servicios/portal/` |
+| VIDEO | 8001 | Detección en vivo, alerta a los 2,5 s | `servicios/video/`, `integrador/video_base/` |
+| IMAGEN | 8002 | Verificación con las técnicas del curso (S03 a S06) | `servicios/imagen/`, `integrador/imagen/` |
+| PREDICCIÓN | 8003 | Análisis facial y motor de evaluación | `servicios/prediccion/`, `prediccion/` |
 
 ## Desplegar
 
 **Docker (local)**
 ```
-docker compose up --build        # http://localhost:8000
+docker compose up --build        # portal en http://localhost:8000
 ```
-`CON_VIDEO=0` (en `docker-compose.yml`) construye sin el detector de VIDEO (imagen liviana).
+Cada servicio se abre también por su cuenta en su puerto.
 
-**Render (plan gratis):** New + Blueprint, elegir este repositorio (`render.yaml`, health check `/salud`).
+**Render (plan gratis):** New + Blueprint, elegir este repositorio (`render.yaml` crea los 4 servicios). Si cambias los nombres, actualiza las URLs del archivo. VIDEO y PREDICCIÓN cargan YOLO y en el plan gratis caben justo.
 
-**Hugging Face Spaces:** `python deploy/publicar_huggingface.py --space USUARIO/supervision-inteligente`
-
-## Estructura
-- `servidor.py`, `ensamble/`: servidor y unión de los tres módulos.
-- `integrador/video_base/`: VIDEO (modelo `best.pt`). `integrador/imagen/`: IMAGEN.
-- `prediccion/backend/`, `prediccion/frontend/`: PREDICCIÓN y la interfaz de los tres apartados.
-- `prediccion/pesos/fase8/facial.joblib`: modelo facial (HOG + SVM, CMU Face Images).
+## Salud y API
+- Todos: `GET /salud`.
+- VIDEO: `POST /api/detectar` (JPEG), `POST /api/hallazgo`.
+- IMAGEN: `POST /api/recibir`, `GET /api/ultimo`.
+- PREDICCIÓN: `POST /api/recibir`, `GET /api/ultimo` y su API original en `/api/*`.
 
 Prototipo académico: la salida es evidencia para revisión humana; usar solo datos ficticios.

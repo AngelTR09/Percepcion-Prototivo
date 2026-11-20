@@ -84,3 +84,4 @@ docs_entrega/
 # Pesos del modelo facial que necesita el despliegue (392 KB)
 !pesos/
 !pesos/**
+!backend/modelo_ia/best.pt

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Servicio IMAGEN · Verificación con los temas del curso</title>
+  <link rel="stylesheet" href="/estilos.css">
+  <script src="/vista_imagen.js" defer></script>
+</head>
+<body>
+  <header class="cabecera">
+    <div class="etiqueta">Servicio 2 de 3 · Grupo IMAGEN</div>
+    <h1>🖼️ Imagen · Verificación con los temas del curso</h1>
+    <p>Recibe el objeto que VIDEO detectó y lo analiza con las técnicas vistas en el curso. Cada paso muestra su resultado. IMAGEN tiene la última palabra: si no verifica el objeto, lo descarta como falso positivo y no llega a PREDICCIÓN.</p>
+  </header>
+  <main class="contenido">
+    <section class="tarjeta">
+      <h2>Cadena: VIDEO → IMAGEN → PREDICCIÓN</h2>
+      <div class="flujo" aria-label="Flujo de la cadena">
+        <span class="chip" id="i-video">🎥 VIDEO: sin hallazgos todavía</span>
+        <span class="flecha" aria-hidden="true">→</span>
+        <span class="chip" id="i-imagen">🖼️ IMAGEN: sin verificar</span>
+        <span class="flecha" aria-hidden="true">→</span>
+        <span class="chip" id="i-prediccion">🔮 PREDICCIÓN: sin datos</span>
+      </div>
+      <p class="ayuda" id="i-ayuda">Esperando un hallazgo del servicio VIDEO: enciende su cámara y muestra un material no permitido (teléfono, cuaderno, libro, audífonos o reloj).</p>
+      <div class="detalle" id="i-detalle" hidden></div>
+    </section>
+    <div id="i-secciones"></div>
+    <div class="info-grid">
+      <section class="tarjeta"><h2>Qué hace</h2><ul class="lista"><li>Recorta el objeto que VIDEO señaló y lo analiza con los temas del curso: filtros de ruido (S03), mejoramiento y transformaciones (S04), segmentación (S05) y bordes y características (S06).</li><li>Comprueba la forma del contorno y vuelve a consultar al detector de VIDEO sobre el recorte mejorado. Emite un veredicto con sus motivos.</li><li>Solo lo verificado se entrega a PREDICCIÓN.</li></ul></section>
+      <section class="tarjeta"><h2>Dónde está</h2><ul class="lista"><li>Código: <code>integrador/imagen/</code> y <code>servicios/imagen/</code>.</li></ul></section>
+    </div>
+  </main>
+</body>
+</html>

@@ -7,7 +7,6 @@ Contrato de salida (ver prediccion/docs/CONTRATO_MODULOS.md):
 Estados: `confirmada` = VIDEO ya lo veia y la mejora lo sostiene; `recuperada` = solo aparece tras mejorar.
 Lo que VIDEO veia y la mejora pierde se descarta (PREDICCION lo ignora como `no_confirmada`).
 """
-import ensamble  # noqa: F401  (prepara sys.path)
 from imagen import config, metricas
 
 MODELO_VIDEO = "SistemaSupervisionExamenes/best.pt"

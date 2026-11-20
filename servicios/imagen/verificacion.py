@@ -14,14 +14,22 @@ veredicto. Es evidencia para revision humana, no una prueba: la compatibilidad d
 aproximados por clase.
 """
 import base64
+import json
+import os
+import urllib.request
 
 import cv2
 import numpy as np
 
-import ensamble  # noqa: F401  (prepara sys.path)
 from imagen import caracteristicas, config, mejoramiento, metricas, preprocesamiento, segmentacion, transformaciones
 
-from . import servicio
+from . import puente
+
+VIDEO_URL = os.getenv("VIDEO_URL", "http://video:8000").rstrip("/")
+
+
+class ImagenInvalida(ValueError):
+    pass
 
 ANCHO_MAX = 360          # el recorte se reduce a este ancho para procesarlo y mostrarlo
 ANCHO_MIN = 160          # y se amplia si es muy pequeno, para que los bordes sean visibles
@@ -212,24 +220,34 @@ def _s06(gris, original):
     ]
 
 
-def _entregar_a_prediccion(forma, clase, confianza_video, redeteccion, mejorada):
-    """Arma el contrato VIDEO + IMAGEN y se lo entrega al motor de PREDICCION (el mismo de la cadena completa)."""
+def _consultar_a_video(imagen):
+    """Nueva pasada del detector de VIDEO (servicio aparte) sobre el recorte ya mejorado.
+    Devuelve (detecciones, error | None) con el mismo formato que usa el puente: {clase, confianza, bbox}."""
+    ok, buf = cv2.imencode(".jpg", imagen, [cv2.IMWRITE_JPEG_QUALITY, 92])
+    if not ok:
+        return [], "no se pudo codificar el recorte"
+    pedido = urllib.request.Request(f"{VIDEO_URL}/api/detectar", buf.tobytes(), {"Content-Type": "image/jpeg"})
     try:
-        from backend.modulos.prediccion.integracion import integrar_fuentes
-        from . import puente
-        alto, ancho = forma[:2]
-        det_video = [{"clase": clase, "confianza": float(confianza_video), "bbox": [0, 0, ancho, alto]}]
-        payload = puente.construir_payload(0, 0.0, metricas.contraste(mejorada), det_video, list(redeteccion), [])
-        return integrar_fuentes(payload)
-    except Exception as error:  # PREDICCION no debe impedir mostrar el analisis de IMAGEN
-        return {"error": f"{type(error).__name__}: {error}"}
+        with urllib.request.urlopen(pedido, timeout=30) as respuesta:
+            datos = json.loads(respuesta.read())
+    except Exception as error:  # VIDEO caido o sin detector: se verifica solo con la forma
+        return [], f"{type(error).__name__}"
+    return [{"clase": o["clase"], "confianza": o["confianza"],
+             "bbox": [o["caja"]["x1"], o["caja"]["y1"], o["caja"]["x2"], o["caja"]["y2"]]} for o in datos["objetos"]], None
+
+
+def _contrato_para_prediccion(forma, clase, confianza_video, redeteccion, mejorada):
+    """Arma el contrato VIDEO + IMAGEN que consume el motor de PREDICCION."""
+    alto, ancho = forma[:2]
+    det_video = [{"clase": clase, "confianza": float(confianza_video), "bbox": [0, 0, ancho, alto]}]
+    return puente.construir_payload(0, 0.0, metricas.contraste(mejorada), det_video, list(redeteccion), [])
 
 
 def verificar_recorte(jpeg_bytes, clase, confianza_video):
     """Analiza con los temas del curso el recorte de un objeto que VIDEO senalo. Devuelve un dict serializable."""
     crudo = cv2.imdecode(np.frombuffer(jpeg_bytes, np.uint8), cv2.IMREAD_COLOR)
     if crudo is None or crudo.size == 0:
-        raise servicio.ImagenInvalida("No se pudo decodificar el recorte")
+        raise ImagenInvalida("No se pudo decodificar el recorte")
     original = _ajustar_tamano(crudo)
 
     # Mejora igual que el modo produccion de IMAGEN: gamma -> filtro fijo -> CLAHE
@@ -245,9 +263,7 @@ def verificar_recorte(jpeg_bytes, clase, confianza_video):
     forma_ok, motivo_forma = _evaluar_forma(clase, medidas)
 
     # Nueva pasada del detector de VIDEO sobre el recorte ya mejorado (como en la cadena de produccion)
-    detector = servicio.obtener_detector()
-    with servicio._candado_vivo:
-        redeteccion = detector(mejorada)
+    redeteccion, error_video = _consultar_a_video(mejorada)
     validas = EQUIVALENTES.get(clase, {clase})
     misma = [o for o in redeteccion if o["clase"] in validas]
     mejor = max(misma, key=lambda o: o["confianza"], default=None)
@@ -256,7 +272,8 @@ def verificar_recorte(jpeg_bytes, clase, confianza_video):
         motivo_det = f"VIDEO vuelve a ver {mejor['clase']} en el recorte mejorado ({round(mejor['confianza'] * 100)} %)."
     else:
         otras = sorted({o["clase"] for o in redeteccion})
-        motivo_det = ("VIDEO no confirma la clase en el recorte mejorado" + (f" (ve: {', '.join(otras)})." if otras else "."))
+        motivo_det = ("No se pudo consultar a VIDEO (" + error_video + "): se verifica solo con la forma." if error_video else
+                      "VIDEO no confirma la clase en el recorte mejorado" + (f" (ve: {', '.join(otras)})." if otras else "."))
 
     if redetectado and forma_ok:
         veredicto = "verificado"
@@ -267,7 +284,7 @@ def verificar_recorte(jpeg_bytes, clase, confianza_video):
 
     # IMAGEN tiene la ultima palabra: lo que no verifica es un falso positivo y no llega a PREDICCION.
     pasa = veredicto in PASAN_A_PREDICCION
-    prediccion = _entregar_a_prediccion(original.shape, clase, confianza_video, redeteccion, mejorada) if pasa else None
+    contrato = _contrato_para_prediccion(original.shape, clase, confianza_video, redeteccion, mejorada) if pasa else None
 
     return {
         "clase": clase,
@@ -276,7 +293,7 @@ def verificar_recorte(jpeg_bytes, clase, confianza_video):
         "pasa_a_prediccion": pasa,
         "decision": ("IMAGEN confirma el objeto: el hallazgo pasa a PREDICCIÓN." if pasa else
                      "IMAGEN no logra verificar el objeto: se descarta como falso positivo y no llega a PREDICCIÓN."),
-        "prediccion": prediccion,
+        "contrato_prediccion": contrato,
         "motivos": [motivo_det, motivo_forma],
         "redeteccion": {"confirmada": redetectado, "confianza": round(mejor["confianza"], 3) if mejor else None},
         "forma": medidas,

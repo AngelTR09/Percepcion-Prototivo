@@ -1,9 +1,10 @@
-// Apartado VIDEO: camara en vivo con la deteccion del grupo VIDEO.
-// Dibuja lo que dibuja VIDEO (azul = permitido, rojo = no permitido), lleva su contador de alerta (2,5 s) y genera
-// la alerta con captura y sonido. Lo que supera el umbral se entrega a IMAGEN con el evento "hallazgo-video".
+// Interfaz del servicio VIDEO: camara en vivo con la deteccion del grupo VIDEO.
+// Dibuja lo que dibuja VIDEO (azul = permitido, rojo = no permitido), lleva su contador de alerta (2,5 s)
+// y genera la alerta con captura y sonido. Los hallazgos se entregan al servicio IMAGEN (via /api/hallazgo),
+// que tiene la ultima palabra: si no los verifica, son falsos positivos y no llegan a PREDICCION.
 (function () {
   "use strict";
-  const TIEMPO_ALERTA = 2.5;   // segundos: la mitad de los 5 s de VIDEO. IMAGEN decide despues si es un falso positivo
+  const TIEMPO_ALERTA = 2.5;   // segundos: la mitad de los 5 s de VIDEO
   const ALERTA = new Set(["telefono", "audifonos", "reloj", "cuaderno", "libro"]);   // principal.py de VIDEO
   const ANCHO_ENVIO = 640;
   const PAUSA_MS = 100;
@@ -11,7 +12,7 @@
   const TOLERANCIA_MS = 1000;   // un parpadeo del detector no reinicia el contador
 
   const $ = (id) => document.getElementById(id);
-  let flujo = null, ultimas = null, corriendo = false, sinSoporte = false;
+  let flujo = null, ultimas = null, corriendo = false, entregando = false;
   let inicio = {}, ultimaVista = {}, alertada = {}, ultimaEntrega = 0;
   const lienzoEnvio = document.createElement("canvas");
 
@@ -19,16 +20,14 @@
 
   function estado(texto, vivo) {
     $("v-estado-texto").textContent = texto;
-    $("v-estado").className = "live-indicator-chip" + (vivo ? "" : " waiting");
+    $("v-estado").className = "chip" + (vivo ? " vivo" : "");
   }
 
   async function iniciar() {
     if (flujo) return;
     try {
       flujo = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
-    } catch (e) {
-      estado("No se pudo acceder a la cámara", false); return;
-    }
+    } catch (e) { estado("No se pudo acceder a la cámara", false); return; }
     const v = $("v-video");
     v.srcObject = flujo; v.classList.add("active");
     $("v-placeholder").style.display = "none";
@@ -48,7 +47,7 @@
 
   // ---- deteccion ----
   async function ciclo() {
-    if (!corriendo || sinSoporte) return;
+    if (!corriendo) return;
     const v = $("v-video");
     let espera = PAUSA_MS;
     if (v.readyState >= 2 && v.videoWidth > 0 && !v.paused) {
@@ -57,8 +56,7 @@
         lienzoEnvio.width = ancho; lienzoEnvio.height = Math.round(v.videoHeight * ancho / v.videoWidth);
         lienzoEnvio.getContext("2d").drawImage(v, 0, 0, lienzoEnvio.width, lienzoEnvio.height);
         const blob = await new Promise((ok) => lienzoEnvio.toBlob(ok, "image/jpeg", 0.7));
-        const r = await fetch("/api/integrado/detectar", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob });
-        if (r.status === 404 || r.status === 405) { sinSoporte = true; estado("Detector no disponible en este despliegue", false); return; }
+        const r = await fetch("/api/detectar", { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob });
         if (r.status === 503) { ultimas = null; espera = 3000; estado("Detector de VIDEO no disponible", false); }
         else if (r.ok) { ultimas = await r.json(); if (corriendo) { estado("Detectando…", true); procesar(); } }
         else espera = 1500;
@@ -67,7 +65,7 @@
     if (corriendo) { dibujar(); setTimeout(ciclo, espera); }
   }
 
-  // ---- contador de alerta y alertas (logica de principal.py) ----
+  // ---- contador de alerta (logica de principal.py de VIDEO) ----
   function procesar() {
     const ahora = performance.now();
     const presentes = new Set();
@@ -96,7 +94,7 @@
     cap.textContent = `${new Date().toLocaleTimeString("es")} · ${o.etiqueta} ${o.confianza.toFixed(2)}`;
     fig.append(img, cap);
     $("v-alertas").prepend(fig); $("v-alertas-vacio").hidden = true;
-    try { new Audio("/api/integrado/sonido-alerta").play().catch(() => {}); } catch (e) { /* sin sonido */ }
+    try { new Audio("/api/sonido-alerta").play().catch(() => {}); } catch (e) { /* sin sonido */ }
   }
 
   function lista() {
@@ -110,7 +108,7 @@
     }
   }
 
-  // ---- entrega a IMAGEN y a PREDICCION ----
+  // ---- entrega a IMAGEN ----
   // Del MISMO fotograma se toman el objeto prohibido (para IMAGEN) y la persona (para el analisis facial).
   function instantanea() {
     const v = $("v-video");
@@ -131,24 +129,44 @@
     return lienzo;
   }
 
-  const aBlob = (lienzo) => new Promise((ok) => lienzo.toBlob(ok, "image/jpeg", 0.92));
-
   async function entregarAImagen() {
-    if (!ultimas || performance.now() - ultimaEntrega < ENTREGA_CADA_MS) return;
+    if (entregando || !ultimas || performance.now() - ultimaEntrega < ENTREGA_CADA_MS) return;
     const c = ultimas.objetos.filter((o) => ALERTA.has(o.clase) && o.confianza >= umbral())
       .sort((a, b) => b.confianza - a.confianza)[0];
     if (!c) return;
-    ultimaEntrega = performance.now();
+    entregando = true; ultimaEntrega = performance.now();
     const foto = instantanea();
     const p = ultimas.objetos.filter((o) => o.clase === "persona").sort((a, b) => b.confianza - a.confianza)[0];
     const lienzoPersona = p ? recortar(foto, p, 0.25) : foto;   // sin persona detectada: el fotograma completo
-    const persona = {
-      dataUrl: lienzoPersona.toDataURL("image/jpeg", 0.92),
-      detectada: Boolean(p), confianza: p ? p.confianza : null,
-      completa: foto.toDataURL("image/jpeg", 0.9),   // respaldo si el recorte no incluye el rostro
+    const cuerpo = {
+      clase: c.clase, etiqueta: c.etiqueta, confianza: c.confianza, umbral: umbral(),
+      objeto_b64: recortar(foto, c, 0.12).toDataURL("image/jpeg", 0.92),
+      persona: {
+        dataUrl: lienzoPersona.toDataURL("image/jpeg", 0.92), detectada: Boolean(p), confianza: p ? p.confianza : null,
+        completa: foto.toDataURL("image/jpeg", 0.9),   // respaldo si el recorte no incluye el rostro
+      },
     };
-    const blob = await aBlob(recortar(foto, c, 0.12));
-    document.dispatchEvent(new CustomEvent("hallazgo-video", { detail: { clase: c.clase, etiqueta: c.etiqueta, confianza: c.confianza, recorte: blob, umbral: umbral(), persona } }));
+    $("v-imagen-estado").className = "chip"; $("v-imagen-estado").textContent = "🖼️ IMAGEN: verificando…";
+    try {
+      const r = await fetch("/api/hallazgo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      marcar(c, await r.json());
+    } catch (e) {
+      $("v-imagen-estado").className = "chip mal"; $("v-imagen-estado").textContent = "🖼️ IMAGEN: no disponible";
+    } finally { entregando = false; }
+  }
+
+  // IMAGEN tiene la ultima palabra: la alerta queda marcada como confirmada o como falso positivo.
+  function marcar(c, r) {
+    const chip = $("v-imagen-estado");
+    chip.className = "chip " + (r.pasa_a_prediccion ? "ok" : "mal");
+    chip.textContent = `🖼️ IMAGEN: ${c.etiqueta} ${r.pasa_a_prediccion ? "confirmado → PREDICCIÓN" : "falso positivo, descartado"}`;
+    const fig = $("v-alertas").querySelector(`figure[data-clase="${c.clase}"]`);
+    if (!fig) return;
+    const cap = fig.querySelector("figcaption");
+    cap.dataset.base = cap.dataset.base || cap.textContent;
+    cap.textContent = `${cap.dataset.base} · IMAGEN: ${r.pasa_a_prediccion ? "confirmada" : "falso positivo, descartada"}`;
+    cap.className = r.pasa_a_prediccion ? "v-ok" : "v-mal";
   }
 
   // ---- dibujo (mismo estilo que dibujar_detecciones de VIDEO) ----
@@ -182,21 +200,10 @@
     }
   }
 
-  // IMAGEN tiene la ultima palabra: la alerta queda marcada como confirmada o como falso positivo.
-  document.addEventListener("analisis-imagen", (e) => {
-    const { hallazgo, resultado } = e.detail;
-    const fig = $("v-alertas").querySelector(`figure[data-clase="${hallazgo.clase}"]`);
-    if (!fig) return;
-    const cap = fig.querySelector("figcaption");
-    cap.dataset.base = cap.dataset.base || cap.textContent;
-    cap.textContent = `${cap.dataset.base} · IMAGEN: ${resultado.pasa_a_prediccion ? "confirmada" : "falso positivo, descartada"}`;
-    cap.className = resultado.pasa_a_prediccion ? "v-ok" : "v-mal";
-  });
-
   document.addEventListener("DOMContentLoaded", () => {
     $("v-iniciar").addEventListener("click", iniciar);
     $("v-detener").addEventListener("click", detener);
     window.addEventListener("resize", dibujar);
-    document.addEventListener("vista-cambiada", (e) => { if (e.detail !== "video" && flujo) detener(); });
+    fetch("/api/estado").then((r) => r.json()).then((d) => { $("estado-detector-video").textContent = d.detector.replace(/_/g, " "); }).catch(() => {});
   });
 })();

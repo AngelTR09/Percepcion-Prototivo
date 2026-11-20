@@ -1,20 +1,44 @@
-# Blueprint de Render (plan GRATIS): New + > Blueprint, y elegir este repositorio. Construye el Dockerfile de la raiz.
-#
-# Memoria medida en el contenedor Linux con tope duro de 512 MiB: 384 MiB (75 %) tras 10 imagenes seguidas, sin OOM.
-# Cabe, pero justo. El plan free ademas tiene CPU compartida (la primera peticion carga YOLO y puede tardar decenas de
-# segundos) y el servicio se duerme tras ~15 min sin visitas. Para mas holgura, Hugging Face Spaces (16 GB): deploy/publicar_huggingface.py.
-# Si el servicio se reinicia por falta de memoria: INTEGRADO_DETECTOR=off (el panel y PREDICCION siguen; la cadena responde 503).
+# Blueprint de Render (plan gratis): New + Blueprint, y elegir este repositorio. Crea 4 servicios web separados.
+# Si cambias los nombres, actualiza las URLs de abajo (https://<nombre>.onrender.com).
+# VIDEO y PREDICCION cargan YOLO (~250 MB cada uno): en el plan gratis (512 MB) caben justo y se duermen tras ~15 min sin visitas.
 services:
   - type: web
-    name: supervision-inteligente
+    name: supervision-video
     runtime: docker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./servicios/video/Dockerfile
     dockerContext: .
     plan: free
     healthCheckPath: /salud
-    autoDeploy: true                # solo redespliega lo que llega a main (protegida: solo via Pull Request)
     envVars:
-      - key: INTEGRADO_DETECTOR
-        value: video                # cadena completa; "off" apaga YOLO y ahorra ~250 MB
-      - key: FRONTEND_ORIGINS
-        value: https://supervision-inteligente.onrender.com
+      - {key: IMAGEN_URL, value: "https://supervision-imagen.onrender.com"}
+
+  - type: web
+    name: supervision-imagen
+    runtime: docker
+    dockerfilePath: ./servicios/imagen/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /salud
+    envVars:
+      - {key: VIDEO_URL, value: "https://supervision-video.onrender.com"}
+      - {key: PREDICCION_URL, value: "https://supervision-prediccion.onrender.com"}
+
+  - type: web
+    name: supervision-prediccion
+    runtime: docker
+    dockerfilePath: ./servicios/prediccion/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /salud
+
+  - type: web
+    name: supervision-portal
+    runtime: docker
+    dockerfilePath: ./servicios/portal/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /salud
+    envVars:
+      - {key: URL_VIDEO, value: "https://supervision-video.onrender.com"}
+      - {key: URL_IMAGEN, value: "https://supervision-imagen.onrender.com"}
+      - {key: URL_PREDICCION, value: "https://supervision-prediccion.onrender.com"}
