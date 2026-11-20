@@ -4,7 +4,7 @@
   const $ = (id) => document.getElementById(id);
   const pct = (v) => Math.round(v * 100) + "%";
   const ESTILO = { verificado: ["ok", "✅ verificado"], probable: ["medio", "🟡 probable"], no_verificado: ["mal", "❌ no verificado"] };
-  let vistoTs = 0;
+  let vistoTs = 0, vistoCompleto = null;
 
   function el(tag, texto, clase) { const n = document.createElement(tag); if (texto != null) n.textContent = texto; if (clase) n.className = clase; return n; }
 
@@ -32,6 +32,11 @@
     medidas.append(dl); det.append(motivos, medidas); det.hidden = false;
 
     const cont = $("i-secciones"); cont.replaceChildren();
+    if (!u.completo) {
+      const espera = el("section", null, "tarjeta seccion");
+      espera.append(el("h2", "Preparando las imágenes de evidencia…"), el("p", "El veredicto ya está decidido. IMAGEN está calculando los filtros, el mejoramiento, la segmentación y los bordes de los temas del curso; aparecerán aquí en unos segundos.", "ayuda"));
+      cont.append(espera);
+    }
     for (const s of v.secciones) {
       const card = el("section", null, "tarjeta seccion");
       const cab = el("div", null, "cab"); cab.append(el("span", s.semana, "semana"), el("h2", s.titulo));
@@ -49,7 +54,7 @@
   async function consultar() {
     try {
       const u = await (await fetch("/api/ultimo")).json();
-      if (u.ts && u.ts !== vistoTs) { vistoTs = u.ts; pintar(u); }
+      if (u.ts && (u.ts !== vistoTs || u.completo !== vistoCompleto)) { vistoTs = u.ts; vistoCompleto = u.completo; pintar(u); }
     } catch (e) { /* el servicio se esta reiniciando */ }
   }
 

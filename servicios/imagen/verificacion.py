@@ -52,7 +52,7 @@ FORMA = {
 
 
 def _png(imagen):
-    ok, buf = cv2.imencode(".png", imagen)
+    ok, buf = cv2.imencode(".png", imagen, [cv2.IMWRITE_PNG_COMPRESSION, 1])
     return "data:image/png;base64," + base64.b64encode(buf.tobytes()).decode("ascii") if ok else None
 
 
@@ -243,8 +243,12 @@ def _contrato_para_prediccion(forma, clase, confianza_video, redeteccion, mejora
     return puente.construir_payload(0, 0.0, metricas.contraste(mejorada), det_video, list(redeteccion), [])
 
 
-def verificar_recorte(jpeg_bytes, clase, confianza_video):
-    """Analiza con los temas del curso el recorte de un objeto que VIDEO senalo. Devuelve un dict serializable."""
+def analizar_rapido(jpeg_bytes, clase, confianza_video):
+    """Camino critico: lo minimo para decidir si el objeto es real (mejora, forma y nueva consulta a VIDEO).
+
+    Devuelve el veredicto ya decidido y el trabajo pendiente para `construir_secciones`, que arma las imagenes
+    de evidencia de los temas del curso. Separarlo permite contestar enseguida y calcular la evidencia despues.
+    """
     crudo = cv2.imdecode(np.frombuffer(jpeg_bytes, np.uint8), cv2.IMREAD_COLOR)
     if crudo is None or crudo.size == 0:
         raise ImagenInvalida("No se pudo decodificar el recorte")
@@ -256,10 +260,8 @@ def verificar_recorte(jpeg_bytes, clase, confianza_video):
     mejorada = mejoramiento.clahe(filtrado, config.CLAHE["clip"], config.CLAHE["grilla"])
     gris = preprocesamiento.a_grises(mejorada)
 
-    otsu, items_s05 = _s05(mejorada, gris)
+    otsu = _orientar(segmentacion.mascara_otsu(gris, _kernel(gris)))
     dibujo, medidas = _geometria(otsu, original)
-    items_s05.append(_item("Contornos y forma", "Verde: contorno · naranja: rectángulo mínimo · azul: polígono", dibujo))
-    canny, sobel, bordes, items_s06 = _s06(gris, original)
     forma_ok, motivo_forma = _evaluar_forma(clase, medidas)
 
     # Nueva pasada del detector de VIDEO sobre el recorte ya mejorado (como en la cadena de produccion)
@@ -285,6 +287,12 @@ def verificar_recorte(jpeg_bytes, clase, confianza_video):
     # IMAGEN tiene la ultima palabra: lo que no verifica es un falso positivo y no llega a PREDICCION.
     pasa = veredicto in PASAN_A_PREDICCION
     contrato = _contrato_para_prediccion(original.shape, clase, confianza_video, redeteccion, mejorada) if pasa else None
+    miniaturas = [
+        {"titulo": "Imagen mejorada", "imagen": _jpg(mejorada)},
+        {"titulo": "Bordes Canny", "imagen": _png(cv2.Canny(gris, *config.CANNY))},
+        {"titulo": "Blanco y negro (Otsu)", "imagen": _png(otsu)},
+        {"titulo": "Contornos y forma", "imagen": _jpg(dibujo)},
+    ] if pasa else []
 
     return {
         "clase": clase,
@@ -294,11 +302,24 @@ def verificar_recorte(jpeg_bytes, clase, confianza_video):
         "decision": ("IMAGEN confirma el objeto: el hallazgo pasa a PREDICCIÓN." if pasa else
                      "IMAGEN no logra verificar el objeto: se descarta como falso positivo y no llega a PREDICCIÓN."),
         "contrato_prediccion": contrato,
+        "objeto": _jpg(original),
+        "miniaturas": miniaturas,
         "motivos": [motivo_det, motivo_forma],
         "redeteccion": {"confirmada": redetectado, "confianza": round(mejor["confianza"], 3) if mejor else None},
         "forma": medidas,
-        "bordes": bordes,
         "tamano_recorte": [int(original.shape[1]), int(original.shape[0])],
+        "_trabajo": {"original": original, "gris": gris, "mejorada": mejorada, "otsu_dibujo": dibujo},
+    }
+
+
+def construir_secciones(trabajo):
+    """Imagenes de evidencia de los temas del curso (S03 a S06). Es la parte pesada: se calcula despues del veredicto."""
+    original, gris, dibujo = trabajo["original"], trabajo["gris"], trabajo["otsu_dibujo"]
+    _, items_s05 = _s05(trabajo["mejorada"], gris)
+    items_s05.append(_item("Contornos y forma", "Verde: contorno · naranja: rectángulo mínimo · azul: polígono", dibujo))
+    _, _, bordes, items_s06 = _s06(gris, original)
+    return {
+        "bordes": bordes,
         "secciones": [
             {"id": "s03", "semana": "S03", "titulo": "Preprocesamiento",
              "descripcion": "El recorte en escala de grises y cuatro filtros de ruido comparados sin imagen de referencia.",
@@ -314,3 +335,11 @@ def verificar_recorte(jpeg_bytes, clase, confianza_video):
              "items": items_s06},
         ],
     }
+
+
+def verificar_recorte(jpeg_bytes, clase, confianza_video):
+    """Analisis completo (veredicto + evidencia). Equivale a `analizar_rapido` + `construir_secciones`."""
+    resultado = analizar_rapido(jpeg_bytes, clase, confianza_video)
+    trabajo = resultado.pop("_trabajo")
+    resultado.update(construir_secciones(trabajo))
+    return resultado
